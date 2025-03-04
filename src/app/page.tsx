@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import axios from "axios";
 import Link from "next/link";
 import "../styles/globals.css";
 import { useState, useEffect } from "react";
@@ -27,16 +28,20 @@ export default function Home() {
 
     if (username && password) {
       // Aquí puedes hacer una llamada a tu API para verificar las credenciales
-      const response = await fetch(`${API_BASE_URL}/login/`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Access-Control-Allow-Origin": "https://front-pi-sand.vercel.app",
+      const response = await axios.post(
+        `${API_BASE_URL}/login/`,
+        {
+          username,
+          password,
         },
-        mode: "cors",
-        credentials: "include",
-        body: JSON.stringify({ username, password }),
-      });
+        {
+          headers: {
+            "Content-Type": "application/json",
+            "Access-Control-Allow-Origin": "https://front-pi-sand.vercel.app",
+          },
+          withCredentials: "true",
+        },
+      );
 
       console.log("Respuesta de la Api:", response.status);
 
