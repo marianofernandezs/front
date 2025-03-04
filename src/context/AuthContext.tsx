@@ -18,6 +18,7 @@ interface AuthContextType {
   user: User | null;
   login: (token: string, name: string) => void;
   logout: () => void;
+  isAuthenticated: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -42,41 +43,46 @@ function decodeJWT(token: string) {
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
 
   useEffect(() => {
-    console.log("Ruta:", pathname);
+    const checkAuth = async () => {
+      console.log("Ruta:", pathname);
 
-    const token = localStorage.getItem("token");
-    const name = localStorage.getItem("name");
+      const token = localStorage.getItem("token");
+      const name = localStorage.getItem("name");
 
-    const publicRoutes = [
-      "/",
-      "/register",
-      "/reset-password",
-      "/forgotpassword",
-    ];
+      const publicRoutes = [
+        "/",
+        "/register",
+        "/reset-password",
+        "/forgotpassword",
+      ];
 
-    if (token && token !== "undefined") {
-      const decoded = decodeJWT(token);
+      if (token && token !== "undefined") {
+        const decoded = decodeJWT(token);
 
-      if (decoded && decoded.user_id) {
-        setUser({ token, name: name !== null ? name : "Usuario" }); // Usamos el nombre almacenado o un valor por defecto
+        if (decoded && decoded.user_id) {
+          setUser({ token, name: name !== null ? name : "Usuario" }); // Usamos el nombre almacenado o un valor por defecto
+        } else {
+          localStorage.removeItem("token");
+          localStorage.removeItem("name");
+          router.push("/");
+        }
       } else {
-        localStorage.removeItem("token");
-        localStorage.removeItem("name");
-        router.push("/");
+        console.log("No hay token almacenado, redirigiendo a /");
+        if (!pathname || !publicRoutes.includes(pathname)) {
+          router.push("/");
+        }
       }
-    } else {
-      console.log("No hay token almacenado, redirigiendo a /");
-      if (!pathname || !publicRoutes.includes(pathname)) {
-        router.push("/");
-      }
-    }
 
-    setIsMounted(true);
+      setIsMounted(true);
+    };
+
+    checkAuth();
   }, [router, pathname]);
 
   const login = (token: string, name: string) => {
@@ -86,6 +92,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       localStorage.setItem("token", token);
       localStorage.setItem("name", name);
       setUser({ token, name });
+      setIsAuthenticated(true);
       router.push("/application");
     } else {
       console.error("Token inválido:", token);
@@ -96,6 +103,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     localStorage.removeItem("token");
     localStorage.removeItem("name");
     setUser(null);
+    setIsAuthenticated(false);
     router.push("/");
   };
 
@@ -104,7 +112,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }
 
   return (
-    <AuthContext.Provider value={{ user, login, logout }}>
+    <AuthContext.Provider value={{ user, login, logout, isAuthenticated }}>
       {children}
     </AuthContext.Provider>
   );
