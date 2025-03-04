@@ -27,8 +27,11 @@ const ResetPassword = () => {
       return;
     }
 
+    const RESESTPASSWORD_API_URL =
+      process.env.NEXT_PUBLIC_RESESTPASSWORD_API_URL;
+
     // Enviar la petición al backend
-    const response = await fetch("http://localhost:8000/api/reset-password/", {
+    const response = await fetch(`${RESESTPASSWORD_API_URL}`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

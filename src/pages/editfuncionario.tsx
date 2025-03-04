@@ -19,6 +19,8 @@ interface Funcionario {
   documentos?: Documento[];
 }
 
+const FUNCIONARIOS_API_URL = process.env.NEXT_PUBLIC_EMPLEADOS_URL;
+
 // Hook para debouncing
 function useDebounce<T>(value: T, delay: number): T {
   const [debouncedValue, setDebouncedValue] = useState(value);
@@ -74,7 +76,7 @@ function EditFuncionario() {
     const controller = new AbortController();
     const obtenerFuncionarios = async () => {
       try {
-        const response = await fetch("http://localhost:8000/api/empleados/", {
+        const response = await fetch(`${FUNCIONARIOS_API_URL}`, {
           signal: controller.signal,
         });
         const data = await response.json();
@@ -112,7 +114,7 @@ function EditFuncionario() {
 
     try {
       const response = await fetch(
-        `http://localhost:8000/api/empleados/${func.rut}/documentos`,
+        `${FUNCIONARIOS_API_URL}/${func.rut}/documentos`,
       );
       if (response.ok) {
         const documentos = await response.json();
@@ -146,7 +148,7 @@ function EditFuncionario() {
     if (!funcionario) return;
     try {
       const response = await fetch(
-        `http://localhost:8000/api/empleados/${funcionario.rut}/`,
+        `${FUNCIONARIOS_API_URL}/${funcionario.rut}/`,
         { method: "DELETE" },
       );
       if (response.ok) {
@@ -166,7 +168,7 @@ function EditFuncionario() {
   const handleSave = useCallback(async () => {
     if (!funcionario) return;
     try {
-      await fetch(`http://localhost:8000/api/empleados/${funcionario.rut}/`, {
+      await fetch(`${FUNCIONARIOS_API_URL}/${funcionario.rut}/`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(funcionario),
@@ -211,12 +213,12 @@ function EditFuncionario() {
 
       try {
         const response = await fetch(
-          `http://localhost:8000/api/empleados/${rut}/documentos/${tipo}/`,
+          `${FUNCIONARIOS_API_URL}/${rut}/documentos/${tipo}/`,
           { method: "PATCH", body: formData },
         );
         if (response.ok) {
           const documentosResponse = await fetch(
-            `http://localhost:8000/api/empleados/${rut}/documentos/`,
+            `${FUNCIONARIOS_API_URL}/${rut}/documentos/`,
           );
           const documentos = await documentosResponse.json();
           documentosCache.current[rut] = documentos;
@@ -306,12 +308,12 @@ function EditFuncionario() {
     if (!funcionario || !documentoAEliminar) return;
     try {
       const response = await fetch(
-        `http://localhost:8000/api/empleados/${funcionario.rut}/documentos/${documentoAEliminar.tipo}/`,
+        `${FUNCIONARIOS_API_URL}/${funcionario.rut}/documentos/${documentoAEliminar.tipo}/`,
         { method: "DELETE" },
       );
       if (response.ok) {
         const documentosResponse = await fetch(
-          `http://localhost:8000/api/empleados/${funcionario.rut}/documentos/`,
+          `${FUNCIONARIOS_API_URL}/${funcionario.rut}/documentos/`,
         );
         const documentos = await documentosResponse.json();
         documentosCache.current[funcionario.rut] = documentos;

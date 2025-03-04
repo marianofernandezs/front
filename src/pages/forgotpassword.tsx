@@ -13,9 +13,10 @@ export default function ForgotPassword() {
   const iralogin = () => {
     router.push("/");
   };
-
+  const FORGOT_PASSWORD_API_URL =
+    process.env.NEXT_PUBLIC_FORGOT_PASSWORD_API_URL;
   const handleForgotPassword = async () => {
-    const response = await fetch("http://localhost:8000/api/forgot-password/", {
+    const response = await fetch(`${FORGOT_PASSWORD_API_URL}`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

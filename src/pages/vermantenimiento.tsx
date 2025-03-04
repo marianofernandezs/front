@@ -29,6 +29,13 @@ interface Maintenance {
   observaciones: string;
 }
 
+const VEHICLES_API_URL =
+  process.env.NEXT_PUBLIC_VEHICLES_API_URL ||
+  "http://localhost:8000/api/vehiculos/";
+const MAINTENANCE_API_URL =
+  process.env.NEXT_PUBLIC_MAINTENANCE_API_URL ||
+  "http://localhost:8000/api/mantenimientos/";
+
 function App() {
   const [selectedVehicleMatricula, setSelectedVehicleMatricula] = useState("");
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
@@ -42,7 +49,7 @@ function App() {
   useEffect(() => {
     const fetchVehicles = async () => {
       try {
-        const response = await fetch("http://localhost:8000/api/vehiculos/");
+        const response = await fetch(VEHICLES_API_URL);
         const data = await response.json();
         setVehicles(data);
       } catch (error) {
@@ -54,9 +61,7 @@ function App() {
 
   const fetchMaintenances = async (matricula: string) => {
     try {
-      const response = await fetch(
-        `http://localhost:8000/api/mantenimientos/${matricula}/`,
-      );
+      const response = await fetch(`${MAINTENANCE_API_URL}/${matricula}/`);
       const data = await response.json();
       setMaintenances(data);
       if (data.length > 0) {
@@ -111,7 +116,7 @@ function App() {
     if (!editableMaintenance) return;
     try {
       const response = await fetch(
-        `http://localhost:8000/api/mantenimientos/${selectedVehicleMatricula}/${editableMaintenance.numero_mantenimiento}/`,
+        `${MAINTENANCE_API_URL}${selectedVehicleMatricula}/${editableMaintenance.numero_mantenimiento}/`,
         {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
@@ -170,7 +175,7 @@ function App() {
     }
     try {
       const response = await fetch(
-        `http://localhost:8000/api/mantenimientos/${selectedVehicleMatricula}/${selectedMaintenance.numero_mantenimiento}/`,
+        `${MAINTENANCE_API_URL}${selectedVehicleMatricula}/${selectedMaintenance.numero_mantenimiento}/`,
         { method: "DELETE" },
       );
       if (response.ok) {

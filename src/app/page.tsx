@@ -19,12 +19,15 @@ export default function Home() {
     setIsClient(true);
   }, []);
 
+  const API_BASE_URL =
+    process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
+
   const handleLogin = async () => {
     if (!isClient) return;
 
     if (username && password) {
       // Aquí puedes hacer una llamada a tu API para verificar las credenciales
-      const response = await fetch("http://localhost:8000/api/login/", {
+      const response = await fetch(`${API_BASE_URL}/login/`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

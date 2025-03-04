@@ -16,10 +16,12 @@ export default function RegisterPage() {
     });
   };
 
+  const REGISTER_URL_API = process.env.NEXT_PUBLIC_REGISTER_URL_API;
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     try {
-      const response = await fetch("http://localhost:8000/api/register/", {
+      const response = await fetch(`${REGISTER_URL_API}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
