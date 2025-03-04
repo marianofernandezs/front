@@ -31,7 +31,10 @@ export default function Home() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "Access-Control-Allow-Origin": "https://front-pi-sand.vercel.app",
         },
+        mode: "cors",
+        credentials: "include",
         body: JSON.stringify({ username, password }),
       });
 
