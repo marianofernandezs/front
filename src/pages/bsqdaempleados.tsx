@@ -95,6 +95,14 @@ function BusquedaEmpleados() {
     setBusqueda(empleado.nombre_completo);
     setMostrarResultados(false);
 
+    if (documentosCache.current[empleado.rut]) {
+      setEmpleadoSeleccionado({
+        ...empleado,
+        documentos: documentosCache.current[empleado.rut],
+      });
+      return;
+    }
+
     try {
       console.log(`📡 Solicitando documentos para: ${empleado.rut}`);
 

@@ -29,6 +29,13 @@ interface Maintenance {
   observaciones: string;
 }
 
+if (!process.env.NEXT_PUBLIC_VEHICLES_API_URL) {
+  throw new Error("NEXT_PUBLIC_VEHICLES_API_URL no está definida");
+}
+if (!process.env.NEXT_PUBLIC_MAINTENANCE_API_URL) {
+  throw new Error("NEXT_PUBLIC_MAINTENANCE_API_URL no está definida");
+}
+
 const VEHICLES_API_URL = process.env.NEXT_PUBLIC_VEHICLES_API_URL; // ||"http://localhost:8000/api/vehiculos/";
 const MAINTENANCE_API_URL = process.env.NEXT_PUBLIC_MAINTENANCE_API_URL; // ||"http://localhost:8000/api/mantenimientos/";
 

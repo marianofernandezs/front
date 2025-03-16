@@ -5,6 +5,10 @@ import Image from "next/image";
 import withAuth from "@/hoc/withAuth";
 import { useRouter } from "next/router";
 
+if (!process.env.NEXT_PUBLIC_VEHICLES_API_URL) {
+  throw new Error("NEXT_PUBLIC_VEHICLES_API_URL no está definida");
+}
+
 const VEHICLES_API_URL = process.env.NEXT_PUBLIC_VEHICLES_API_URL; // ||("http://localhost:8000/api/vehiculos/");
 
 function App() {
