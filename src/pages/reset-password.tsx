@@ -28,7 +28,7 @@ const ResetPassword = () => {
     }
 
     const RESESTPASSWORD_API_URL =
-      process.env.NEXT_PUBLIC_RESESTPASSWORD_API_URL;
+      process.env.NEXT_PUBLIC_RESETPASSWORD_API_URL;
 
     // Enviar la petición al backend
     const response = await fetch(`${RESESTPASSWORD_API_URL}`, {

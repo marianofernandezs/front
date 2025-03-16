@@ -11,12 +11,8 @@ interface Vehicle {
   modelo: string;
 }
 
-const VEHICLES_API_URL =
-  process.env.NEXT_PUBLIC_VEHICLES_API_URL ||
-  "http://localhost:8000/api/vehiculos/";
-const MAINTENANCE_API_URL =
-  process.env.NEXT_PUBLIC_MAINTENANCE_API_URL ||
-  "http://localhost:8000/api/mantenimientos/";
+const VEHICLES_API_URL = process.env.NEXT_PUBLIC_VEHICLES_API_URL; // ||"http://localhost:8000/api/vehiculos/";
+const MAINTENANCE_API_URL = process.env.NEXT_PUBLIC_MAINTENANCE_API_URL; // ||"http://localhost:8000/api/mantenimientos/";
 
 function App() {
   const [showForm, setShowForm] = useState(false);

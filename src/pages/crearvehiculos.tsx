@@ -5,9 +5,7 @@ import Image from "next/image";
 import withAuth from "@/hoc/withAuth";
 import { useRouter } from "next/router";
 
-const VEHICLES_API_URL =
-  process.env.NEXT_PUBLIC_VEHICLES_API_URL ||
-  "http://localhost:8000/api/vehiculos/";
+const VEHICLES_API_URL = process.env.NEXT_PUBLIC_VEHICLES_API_URL; // ||("http://localhost:8000/api/vehiculos/");
 
 function App() {
   const [formData, setFormData] = useState({

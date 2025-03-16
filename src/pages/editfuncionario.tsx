@@ -19,7 +19,8 @@ interface Funcionario {
   documentos?: Documento[];
 }
 
-const FUNCIONARIOS_API_URL = process.env.NEXT_PUBLIC_EMPLEADOS_URL;
+const FUNCIONARIOS_API_URL = process.env.NEXT_PUBLIC_EMPLEADOS_URL; // ||"http://127.0.0.1:8000/api/empleados";
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL; //|| "http://127.0.0.1:8000/api";
 
 // Hook para debouncing
 function useDebounce<T>(value: T, delay: number): T {
@@ -76,7 +77,7 @@ function EditFuncionario() {
     const controller = new AbortController();
     const obtenerFuncionarios = async () => {
       try {
-        const response = await fetch(`${FUNCIONARIOS_API_URL}`, {
+        const response = await fetch(`${FUNCIONARIOS_API_URL}/`, {
           signal: controller.signal,
         });
         const data = await response.json();
@@ -104,28 +105,28 @@ function EditFuncionario() {
     setBusqueda("");
     setIsEditing(false);
 
-    if (documentosCache.current[func.rut]) {
-      setFuncionario({
-        ...func,
-        documentos: documentosCache.current[func.rut],
-      });
-      return;
-    }
-
     try {
+      // Hacer la petición para obtener los documentos
       const response = await fetch(
-        `${FUNCIONARIOS_API_URL}/${func.rut}/documentos`,
+        `${BASE_URL}/empleados/${func.rut}/documentos/`,
       );
+
       if (response.ok) {
         const documentos = await response.json();
+
+        // Guardar en caché para evitar llamadas repetidas
         documentosCache.current[func.rut] = documentos;
+
+        // Actualizar el estado con los documentos obtenidos
         setFuncionario({ ...func, documentos });
       } else {
-        console.error("Error al obtener documentos del funcionario");
-        setFuncionario(func);
+        console.error(
+          "⚠️ No se pudieron obtener los documentos del funcionario",
+        );
+        setFuncionario(func); // Asegurar que al menos se cargue el funcionario
       }
     } catch (error) {
-      console.error("Error al seleccionar funcionario:", error);
+      console.error("❌ Error al seleccionar funcionario:", error);
       setFuncionario(func);
     }
   }, []);
@@ -198,6 +199,64 @@ function EditFuncionario() {
     setDocumentoAEditar(null);
   }, []);
 
+  console.log("Enviando petición a:", `${BASE_URL}/upload_funcionario_file/`);
+
+  const editarDocumento = useCallback(
+    async (
+      rut: string,
+      tipo: string,
+      archivo: File,
+      fecha_vencimiento: string,
+      archivo_anterior?: string,
+    ) => {
+      const formData = new FormData();
+      formData.append("archivo", archivo);
+      formData.append("tipo", tipo);
+      formData.append("fecha_vencimiento", fecha_vencimiento);
+
+      if (archivo_anterior) {
+        formData.append("archivo_anterior", archivo_anterior);
+      }
+
+      // 📌 Imprimir los datos que se están enviando
+      console.log("📤 FormData enviado:");
+      for (const pair of formData.entries()) {
+        console.log(`  ${pair[0]}:`, pair[1]);
+      }
+
+      try {
+        console.log("📤 Enviando solicitud de actualización de documento...");
+        const response = await fetch(
+          `${BASE_URL}/update_funcionario_file/${rut}/${tipo}/`,
+          {
+            method: "PUT",
+            body: formData,
+          },
+        );
+
+        if (response.ok) {
+          console.log("✅ Documento actualizado correctamente");
+          const documentosResponse = await fetch(
+            `${BASE_URL}/empleados/${rut}/documentos/`,
+          );
+          if (documentosResponse.ok) {
+            const documentos = await documentosResponse.json();
+            setFuncionario((prev) => (prev ? { ...prev, documentos } : null));
+          }
+        } else {
+          const errorData = await response.json();
+          console.error("❌ Error al actualizar documento:", errorData);
+        }
+      } catch (error) {
+        console.error(
+          "❌ Error al enviar solicitud de edición de documento:",
+          error,
+        );
+      }
+    },
+    [setFuncionario],
+  );
+
   const subirArchivo = useCallback(
     async (
       rut: string,
@@ -206,53 +265,100 @@ function EditFuncionario() {
       fecha_vencimiento: string,
     ) => {
       const formData = new FormData();
-      formData.append("archivo", archivo);
-      formData.append("empleado", rut);
+      formData.append("file", archivo);
+      formData.append("rut", rut);
       formData.append("tipo", tipo);
       formData.append("fecha_vencimiento", fecha_vencimiento);
 
       try {
-        const response = await fetch(
-          `${FUNCIONARIOS_API_URL}/${rut}/documentos/${tipo}/`,
-          { method: "PATCH", body: formData },
-        );
-        if (response.ok) {
-          const documentosResponse = await fetch(
-            `${FUNCIONARIOS_API_URL}/${rut}/documentos/`,
-          );
-          const documentos = await documentosResponse.json();
-          documentosCache.current[rut] = documentos;
-          setFuncionario((prev) => (prev ? { ...prev, documentos } : null));
-          limpiarModal();
-          setShowModal(false);
-        } else {
-          const errorData = await response.json();
-          console.error("Error al subir archivo:", errorData);
+        const response = await fetch(`${BASE_URL}/upload_funcionario_file/`, {
+          method: "POST",
+          body: formData,
+        });
+
+        const contentType = response.headers.get("content-type");
+
+        if (!response.ok) {
+          console.error("❌ Error en la respuesta del servidor");
+          if (contentType && contentType.includes("application/json")) {
+            const errorData = await response.json();
+            console.error("🔴 Respuesta JSON de error:", errorData);
+          } else {
+            const text = await response.text();
+            console.error("🔴 Respuesta no JSON (probablemente HTML):", text);
+          }
+          return;
         }
+
+        if (contentType && contentType.includes("application/json")) {
+          const data = await response.json();
+          console.log("✅ Archivo subido correctamente:", data);
+
+          // Recargar la lista de documentos después de la subida
+          const documentosResponse = await fetch(
+            `${BASE_URL}/empleados/${rut}/documentos/`,
+          );
+          if (documentosResponse.ok) {
+            const documentos = await documentosResponse.json();
+            documentosCache.current[rut] = documentos;
+            setFuncionario((prev) => (prev ? { ...prev, documentos } : null));
+          }
+        } else {
+          console.warn("⚠️ El servidor devolvió una respuesta que no es JSON.");
+        }
+
+        limpiarModal();
+        setShowModal(false);
       } catch (error) {
-        console.error("Error en subirArchivo:", error);
+        console.error("❌ Error en la subida del archivo:", error);
       }
     },
     [limpiarModal],
   );
 
   const handleSubmit = useCallback(async () => {
-    if (
-      nuevoDocumento &&
-      tipoDocumento &&
-      fechaVencimiento &&
-      funcionario?.rut
-    ) {
-      await subirArchivo(
-        funcionario.rut,
-        tipoDocumento,
-        nuevoDocumento,
-        fechaVencimiento,
-      );
+    if (!tipoDocumento || !fechaVencimiento || !funcionario?.rut) {
+      alert("❌ Por favor, completa todos los campos.");
+      return;
+    }
+
+    if (!nuevoDocumento && isEditingDocumento) {
+      alert("❌ Debes seleccionar un nuevo archivo para actualizar.");
+      return;
+    }
+
+    console.log("📤 handleSubmit ejecutado");
+    console.log("isEditingDocumento:", isEditingDocumento);
+    console.log("Nuevo Documento:", nuevoDocumento);
+    console.log("Tipo:", tipoDocumento);
+    console.log("Fecha:", fechaVencimiento);
+    console.log("Funcionario:", funcionario?.rut);
+    console.log("Archivo Anterior:", documentoAEditar?.archivo);
+
+    try {
+      if (isEditingDocumento && documentoAEditar) {
+        console.log("📝 Actualizando documento...");
+        await editarDocumento(
+          funcionario.rut,
+          tipoDocumento,
+          nuevoDocumento!,
+          fechaVencimiento,
+          documentoAEditar.archivo, // <-- Pasamos el archivo anterior
+        );
+      } else {
+        console.log("📌 Subiendo nuevo documento...");
+        await subirArchivo(
+          funcionario.rut,
+          tipoDocumento,
+          nuevoDocumento!,
+          fechaVencimiento,
+        );
+      }
+
       limpiarModal();
       setShowModal(false);
-    } else {
-      alert("Por favor, completa todos los campos.");
+    } catch (error) {
+      console.error("❌ Error en handleSubmit:", error);
     }
   }, [
     nuevoDocumento,
@@ -260,6 +366,9 @@ function EditFuncionario() {
     fechaVencimiento,
     funcionario,
     subirArchivo,
+    editarDocumento,
+    documentoAEditar,
+    isEditingDocumento,
     limpiarModal,
   ]);
 
@@ -282,7 +391,7 @@ function EditFuncionario() {
 
   // Actualizar la edad en el estado del funcionario
   useEffect(() => {
-    if (funcionario) {
+    if (funcionario && funcionario.edad !== edadCalculada) {
       setFuncionario((prev) =>
         prev ? { ...prev, edad: edadCalculada } : null,
       );
@@ -308,12 +417,12 @@ function EditFuncionario() {
     if (!funcionario || !documentoAEliminar) return;
     try {
       const response = await fetch(
-        `${FUNCIONARIOS_API_URL}/${funcionario.rut}/documentos/${documentoAEliminar.tipo}/`,
+        `${BASE_URL}/delete_funcionario_file/${funcionario.rut}/${documentoAEliminar.tipo}/`,
         { method: "DELETE" },
       );
       if (response.ok) {
         const documentosResponse = await fetch(
-          `${FUNCIONARIOS_API_URL}/${funcionario.rut}/documentos/`,
+          `${BASE_URL}/empleados/${funcionario.rut}/documentos/`,
         );
         const documentos = await documentosResponse.json();
         documentosCache.current[funcionario.rut] = documentos;

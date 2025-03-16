@@ -5,13 +5,13 @@ import withAuth from "@/hoc/withAuth";
 import { useRouter } from "next/router";
 import { DateTime } from "luxon";
 
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL; // || "http://localhost:8000/api";
 
 interface Documento {
   tipo: string;
   archivo?: string;
   fecha_vencimiento?: string;
+  archivo_url?: string;
 }
 
 interface Vehiculo {
@@ -49,7 +49,7 @@ function BusquedaVehiculos() {
     const obtenerVehiculos = async () => {
       setLoadingVehiculos(true);
       try {
-        const response = await fetch(`${API_BASE_URL}/vehiculos`);
+        const response = await fetch(`${API_BASE_URL}/vehiculos/`);
         const data = await response.json();
         setVehiculos(data);
       } catch (error) {
@@ -263,13 +263,16 @@ function BusquedaVehiculos() {
                             )}
                           </div>
                           <div className="flex space-x-2">
-                            <a
-                              href={`${doc.archivo}`}
-                              target="_blank"
-                              className="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600 transition-colors text-sm"
-                            >
-                              Ver PDF
-                            </a>
+                            {doc.archivo && (
+                              <a
+                                href={doc.archivo_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600 transition-colors text-sm"
+                              >
+                                Ver PDF
+                              </a>
+                            )}
                           </div>
                         </div>
                       </div>

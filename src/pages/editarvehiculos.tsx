@@ -18,13 +18,8 @@ interface Vehiculo {
   numero_de_maquina: number;
   documentos?: Documento[];
 }
-
-const VEHICULOS_API_URL =
-  process.env.NEXT_PUBLIC_VEHICULOS_API_URL ||
-  "http://localhost:8000/api/vehiculos/";
-const DOCUMENTOS_API_URL =
-  process.env.NEXT_PUBLIC_DOCUMENTOS_API_URL ||
-  "http://localhost:8000/api/documentos/";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL; //|| "http://localhost:8000/api";
+const VEHICULOS_API_URL = `${API_BASE_URL}/vehiculos`;
 
 function EditFuncionario() {
   const [vehiculos, setVehiculos] = useState<Vehiculo[]>([]);
@@ -76,7 +71,6 @@ function EditFuncionario() {
   };
 
   const seleccionarVehiculo = async (vehiculo: Vehiculo) => {
-    console.log("Vehículo seleccionado:", vehiculo);
     setVehiculoSeleccionado(vehiculo);
     setBusqueda(vehiculo.matricula);
     setResultados([]);
@@ -92,7 +86,7 @@ function EditFuncionario() {
     // Obtener documentos asociados al vehículo
     try {
       const response = await fetch(
-        `${DOCUMENTOS_API_URL}${vehiculo.matricula}/`,
+        `${VEHICULOS_API_URL}/${vehiculo.matricula}/documentos/`,
       );
       if (!response.ok) {
         throw new Error("Error al obtener documentos");
@@ -215,18 +209,20 @@ function EditFuncionario() {
   ) => {
     const formData = new FormData();
     formData.append("archivo", archivo);
-    formData.append("vehiculo", matricula);
     formData.append("tipo", tipo);
     formData.append("fecha_vencimiento", fecha_vencimiento);
 
-    const response = await fetch(`${DOCUMENTOS_API_URL}${matricula}/`, {
-      method: "POST",
-      body: formData,
-    });
+    const response = await fetch(
+      `${VEHICULOS_API_URL}/${matricula}/documentos/upload/`,
+      {
+        method: "POST",
+        body: formData,
+      },
+    );
 
     if (response.ok) {
       const documentosResponse = await fetch(
-        `${DOCUMENTOS_API_URL}${matricula}/`,
+        `${VEHICULOS_API_URL}/${matricula}/documentos/`,
       );
       const documentos = await documentosResponse.json();
       setVehiculo((prev) => (prev ? { ...prev, documentos } : null));
@@ -255,6 +251,7 @@ function EditFuncionario() {
         documentoSeleccionado.tipo,
         nuevoDocumento,
         fechaVencimiento,
+        documentoSeleccionado.archivo,
       );
       setShowModal(false);
       setDocumentoSeleccionado(null);
@@ -268,21 +265,28 @@ function EditFuncionario() {
     tipo: string,
     archivo: File,
     fecha_vencimiento: string,
+    archivo_anterior?: string,
   ) => {
     const formData = new FormData();
     formData.append("archivo", archivo);
-    formData.append("vehiculo", matricula);
     formData.append("tipo", tipo);
     formData.append("fecha_vencimiento", fecha_vencimiento);
 
-    const response = await fetch(`${DOCUMENTOS_API_URL}${matricula}/${tipo}/`, {
-      method: "PATCH",
-      body: formData,
-    });
+    if (archivo_anterior) {
+      formData.append("archivo_anterior", archivo_anterior);
+    }
+
+    const response = await fetch(
+      `${VEHICULOS_API_URL}/${matricula}/documentos/${tipo}/update/`,
+      {
+        method: "PUT",
+        body: formData,
+      },
+    );
 
     if (response.ok) {
       const documentosResponse = await fetch(
-        `${DOCUMENTOS_API_URL}${matricula}/`,
+        `${VEHICULOS_API_URL}/${matricula}/documentos/`,
       );
       const documentos = await documentosResponse.json();
       setVehiculo((prev) => (prev ? { ...prev, documentos } : null));
@@ -296,12 +300,12 @@ function EditFuncionario() {
     if (vehiculo && documentoSeleccionado) {
       try {
         const response = await fetch(
-          `${DOCUMENTOS_API_URL}${vehiculo.matricula}/${documentoSeleccionado.tipo}/`,
+          `${VEHICULOS_API_URL}/${vehiculo.matricula}/documentos/${documentoSeleccionado.tipo}/delete/`,
           { method: "DELETE" },
         );
         if (response.ok) {
           const documentosResponse = await fetch(
-            `${DOCUMENTOS_API_URL}${vehiculo.matricula}/`,
+            `${VEHICULOS_API_URL}/${vehiculo.matricula}/documentos/`,
           );
           const documentos = await documentosResponse.json();
           setVehiculo((prev) => (prev ? { ...prev, documentos } : null));
@@ -643,7 +647,7 @@ function EditFuncionario() {
                 <select
                   value={tipoDocumento}
                   onChange={(e) => setTipoDocumento(e.target.value)}
-                  className="border border-gray-300 rounded p-1 w-full"
+                  className="border border-gray-300 rounded p-1 w-full text-black"
                 >
                   <option value="">Seleccionar tipo de documento</option>
                   <option value="seguro">Seguro</option>
@@ -657,7 +661,7 @@ function EditFuncionario() {
                   type="file"
                   accept=".pdf"
                   onChange={handleFileChange}
-                  className="mt-2"
+                  className="mt-2 text-black"
                 />
                 <label className="font-semibold text-gray-800 mt-2">
                   Fecha de Vencimiento:
@@ -666,7 +670,7 @@ function EditFuncionario() {
                   type="date"
                   value={fechaVencimiento}
                   onChange={(e) => setFechaVencimiento(e.target.value)}
-                  className="border border-gray-300 rounded p-1 mt-1 w-full"
+                  className="border border-gray-300 rounded p-1 mt-1 w-full text-black"
                 />
                 <button
                   onClick={handleSubmit}
