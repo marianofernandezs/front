@@ -86,7 +86,7 @@ function App() {
     setLoading(true);
 
     try {
-      const response = await fetch(`${API_BASE_URL}/empleados`, {
+      const response = await fetch(`${API_BASE_URL}/empleados/`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
