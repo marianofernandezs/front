@@ -16,7 +16,7 @@ export default function RegisterPage() {
     });
   };
 
-  const REGISTER_URL_API = process.env.NEXT_PUBLIC_REGISTER_URL_API;
+  const REGISTER_URL_API = process.env.NEXT_PUBLIC_REGISTER_API_URL;
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
