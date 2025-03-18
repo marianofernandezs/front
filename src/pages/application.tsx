@@ -81,7 +81,7 @@ const Dashboard = () => {
               <Link href="/bsqdaempleados" className="block group">
                 <div className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition-shadow">
                   <Image
-                    src="/funcionarios.jpg"
+                    src="/Funcionarios.jpg"
                     alt="Funcionarios"
                     width={400}
                     height={300}
