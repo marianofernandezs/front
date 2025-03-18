@@ -20,6 +20,8 @@ export default function RegisterPage() {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    console.log("Enviando solicitud a:", REGISTER_URL_API); // Depuración
+    console.log("Datos enviados:", formData);
     try {
       const response = await fetch(`${REGISTER_URL_API}`, {
         method: "POST",
