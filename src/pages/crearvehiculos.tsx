@@ -10,6 +10,7 @@ if (!process.env.NEXT_PUBLIC_VEHICLES_API_URL) {
 }
 
 const VEHICLES_API_URL = process.env.NEXT_PUBLIC_VEHICLES_API_URL; // ||("http://localhost:8000/api/vehiculos/");
+console.log("VEHICLES_API_URL:", VEHICLES_API_URL);
 
 function App() {
   const [formData, setFormData] = useState({
