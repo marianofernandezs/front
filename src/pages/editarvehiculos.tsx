@@ -19,7 +19,7 @@ interface Vehiculo {
   documentos?: Documento[];
 }
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL; //|| "http://localhost:8000/api";
-const VEHICULOS_API_URL = `${API_BASE_URL}/vehiculos`;
+const VEHICULOS_API_URL = `${API_BASE_URL}/vehiculos/`;
 
 function EditFuncionario() {
   const [vehiculos, setVehiculos] = useState<Vehiculo[]>([]);
@@ -86,7 +86,7 @@ function EditFuncionario() {
     // Obtener documentos asociados al vehículo
     try {
       const response = await fetch(
-        `${VEHICULOS_API_URL}/${vehiculo.matricula}/documentos/`,
+        `${VEHICULOS_API_URL}${vehiculo.matricula}/documentos/`,
       );
       if (!response.ok) {
         throw new Error("Error al obtener documentos");
@@ -213,7 +213,7 @@ function EditFuncionario() {
     formData.append("fecha_vencimiento", fecha_vencimiento);
 
     const response = await fetch(
-      `${VEHICULOS_API_URL}/${matricula}/documentos/upload/`,
+      `${VEHICULOS_API_URL}${matricula}/documentos/upload/`,
       {
         method: "POST",
         body: formData,
@@ -222,7 +222,7 @@ function EditFuncionario() {
 
     if (response.ok) {
       const documentosResponse = await fetch(
-        `${VEHICULOS_API_URL}/${matricula}/documentos/`,
+        `${VEHICULOS_API_URL}${matricula}/documentos/`,
       );
       const documentos = await documentosResponse.json();
       setVehiculo((prev) => (prev ? { ...prev, documentos } : null));
@@ -300,12 +300,12 @@ function EditFuncionario() {
     if (vehiculo && documentoSeleccionado) {
       try {
         const response = await fetch(
-          `${VEHICULOS_API_URL}/${vehiculo.matricula}/documentos/${documentoSeleccionado.tipo}/delete/`,
+          `${VEHICULOS_API_URL}${vehiculo.matricula}/documentos/${documentoSeleccionado.tipo}/delete/`,
           { method: "DELETE" },
         );
         if (response.ok) {
           const documentosResponse = await fetch(
-            `${VEHICULOS_API_URL}/${vehiculo.matricula}/documentos/`,
+            `${VEHICULOS_API_URL}${vehiculo.matricula}/documentos/`,
           );
           const documentos = await documentosResponse.json();
           setVehiculo((prev) => (prev ? { ...prev, documentos } : null));
