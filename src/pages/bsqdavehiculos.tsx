@@ -4,8 +4,7 @@ import Link from "next/link";
 import withAuth from "@/hoc/withAuth";
 import { useRouter } from "next/router";
 import { DateTime } from "luxon";
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL; // || "http://localhost:8000/api";
+import { apiRequest, APIError } from "@/utils/api";
 
 interface Documento {
   tipo: string;
@@ -42,15 +41,14 @@ function BusquedaVehiculos() {
   const [vehiculoSeleccionado, setVehiculoSeleccionado] =
     useState<Vehiculo | null>(null);
   const [loadingVehiculos, setLoadingVehiculos] = useState(false);
-
+  const [mensajeError, setMensajeError] = useState<string | null>(null);
   const debouncedBusqueda = useDebounce(busqueda, 300);
 
   useEffect(() => {
     const obtenerVehiculos = async () => {
       setLoadingVehiculos(true);
       try {
-        const response = await fetch(`${API_BASE_URL}/vehiculos/`);
-        const data = await response.json();
+        const data = await apiRequest(`/vehiculos/`);
         setVehiculos(data);
       } catch (error) {
         console.error("Error al obtener vehículos:", error);
@@ -92,32 +90,35 @@ function BusquedaVehiculos() {
 
   const seleccionarVehiculo = useCallback(async (vehiculo: Vehiculo) => {
     try {
-      const response = await fetch(
-        `${API_BASE_URL}/documentos/${vehiculo.matricula}/`,
-      );
-      if (!response.ok) {
-        throw new Error("Error al obtener documentos");
-      }
-
-      const documentos = await response.json();
+      const documentos = await apiRequest(`/documentos/${vehiculo.matricula}/`);
       setVehiculoSeleccionado({ ...vehiculo, documentos: documentos });
       setBusqueda(
         `${vehiculo.marca} ${vehiculo.modelo} - ${vehiculo.matricula}`,
       );
       setMostrarResultados(false);
     } catch (error) {
-      console.error("Error al obtener documentos:", error);
-      // Si hay un error, aún mostramos el vehículo pero sin documentos
-      setVehiculoSeleccionado({
-        ...vehiculo,
-        documentos: [],
-      });
+      if (error instanceof APIError) {
+        console.error("❌ Error al obtener documentos:", error.message);
+        setMensajeError(`❌ ${error.message}`);
+      } else {
+        setMensajeError("❌ Error inesperado al obtener vehículos.");
+        console.error("❌ Error inesperado:", error);
+      }
+
+      setVehiculoSeleccionado({ ...vehiculo, documentos: [] });
       setBusqueda(
         `${vehiculo.marca} ${vehiculo.modelo} - ${vehiculo.matricula}`,
       );
       setMostrarResultados(false);
     }
   }, []);
+
+  useEffect(() => {
+    if (mensajeError) {
+      const timeout = setTimeout(() => setMensajeError(null), 4000);
+      return () => clearTimeout(timeout);
+    }
+  }, [mensajeError]);
 
   const router = useRouter();
 
@@ -173,6 +174,12 @@ function BusquedaVehiculos() {
             </div>
           </div>
         </nav>
+
+        {mensajeError && (
+          <div className="fixed top-8 left-1/2 transform -translate-x-1/2 bg-red-500 text-white py-2 px-6 rounded-md shadow-lg">
+            {mensajeError}
+          </div>
+        )}
 
         {/* Barra de búsqueda */}
         <div className="max-w-3xl mx-auto mt-8 px-4">
@@ -288,13 +295,7 @@ function BusquedaVehiculos() {
             <button className="bg-yellow-500 text-white p-4 rounded-lg hover:bg-yellow-600 transition-colors">
               <Link href="/editarvehiculos">Editar</Link>
             </button>
-            <button className="bg-red-500 text-white p-4 rounded-lg hover:bg-red-600 transition-colors">
-              <Link href="/crearmantenimiento">Crear Mantenimiento</Link>
-            </button>
-            <button className="bg-blue-500 text-white p-4 rounded-lg hover:bg-blue-600 transition-colors">
-              <Link href="/crearvehiculos">Crear Vehículo</Link>
-            </button>
-            <button className="bg-blue-500 text-white p-4 rounded-lg hover:bg-blue-600 transition-colors">
+            <button className="bg-green-500 text-white p-4 rounded-lg hover:bg-green-600 transition-colors">
               <Link href="/vermantenimiento">Ver Mantenimiento</Link>
             </button>
           </div>

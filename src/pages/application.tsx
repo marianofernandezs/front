@@ -68,7 +68,7 @@ const Dashboard = () => {
         <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
           <h1 className="text-3xl font-bold text-center mb-4 text-gray-800">
             Bienvenido a el Intranet&nbsp;
-            <span className="text-blue-400">{user ? user.name : ""}</span>
+            <span className="text-blue-400">{user?.name ?? ""}</span>
           </h1>
 
           <div className="bg-white/80 backdrop-blur-sm p-6 rounded-lg shadow-md">

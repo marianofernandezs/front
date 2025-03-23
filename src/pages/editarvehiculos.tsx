@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import withAuth from "@/hoc/withAuth";
 import { DateTime } from "luxon";
+import { apiRequest, APIError } from "@/utils/api";
 
 interface Documento {
   tipo: string;
@@ -47,7 +48,6 @@ function EditFuncionario() {
       try {
         const response = await fetch(VEHICULOS_API_URL);
         const data = await response.json();
-        console.log("Datos de vehículos:", data);
         setVehiculos(data);
       } catch (error) {
         console.error("Error al obtener vehiculos:", error);
@@ -83,11 +83,10 @@ function EditFuncionario() {
     });
     setIsEditing(false);
 
-    // Obtener documentos asociados al vehículo
+    const API_URL = `${VEHICULOS_API_URL.replace(/\/$/, "")}/${vehiculo.matricula}/documentos/`;
+
     try {
-      const response = await fetch(
-        `${VEHICULOS_API_URL}${vehiculo.matricula}/documentos/`,
-      );
+      const response = await fetch(API_URL);
       if (!response.ok) {
         throw new Error("Error al obtener documentos");
       }
@@ -159,7 +158,6 @@ function EditFuncionario() {
         return;
       }
 
-      console.log("Datos a enviar para guardar:", vehiculo);
       await fetch(`${VEHICULOS_API_URL}${vehiculo.matricula}/`, {
         method: "PATCH",
         headers: {
@@ -277,7 +275,7 @@ function EditFuncionario() {
     }
 
     const response = await fetch(
-      `${VEHICULOS_API_URL}/${matricula}/documentos/${tipo}/update/`,
+      `${API_BASE_URL}/vehiculos/${matricula}/documentos/${tipo}/update/`,
       {
         method: "PUT",
         body: formData,
@@ -286,7 +284,7 @@ function EditFuncionario() {
 
     if (response.ok) {
       const documentosResponse = await fetch(
-        `${VEHICULOS_API_URL}/${matricula}/documentos/`,
+        `${VEHICULOS_API_URL}${matricula}/documentos/`,
       );
       const documentos = await documentosResponse.json();
       setVehiculo((prev) => (prev ? { ...prev, documentos } : null));

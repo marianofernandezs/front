@@ -4,8 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import withAuth from "@/hoc/withAuth";
 import { useRouter } from "next/router";
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL; // || "http://127.0.0.1:8000/api/";
+import { apiRequest } from "@/utils/api";
 
 function App() {
   const [formData, setFormData] = useState({
@@ -20,23 +19,18 @@ function App() {
   } | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const calcularEdad = (fechaNacimiento: string) => {
-    const hoy = new Date();
-    const nacimiento = new Date(fechaNacimiento);
-    let edadCalculada = hoy.getFullYear() - nacimiento.getFullYear();
-    const mesDiff = hoy.getMonth() - nacimiento.getMonth();
-    if (
-      mesDiff < 0 ||
-      (mesDiff === 0 && hoy.getDate() < nacimiento.getDate())
-    ) {
-      edadCalculada--;
-    }
-    return edadCalculada;
-  };
-
   useEffect(() => {
     if (formData.fechaNacimiento) {
-      const edadCalculada = calcularEdad(formData.fechaNacimiento);
+      const hoy = new Date();
+      const nacimiento = new Date(formData.fechaNacimiento);
+      let edadCalculada = hoy.getFullYear() - nacimiento.getFullYear();
+      const mesDiff = hoy.getMonth() - nacimiento.getMonth();
+      if (
+        mesDiff < 0 ||
+        (mesDiff === 0 && hoy.getDate() < nacimiento.getDate())
+      ) {
+        edadCalculada--;
+      }
       setEdad(edadCalculada);
     } else {
       setEdad(null);
@@ -56,17 +50,18 @@ function App() {
     [],
   );
 
+  const limpiarYValidarRut = (rut: string) => {
+    rut = rut.trim().toUpperCase(); // Eliminar espacios y forzar mayúsculas
+    const rutRegex = /^(\d{1,2}\.\d{3}\.\d{3}-[\dkK])$/;
+    return rutRegex.test(rut);
+  };
+
   const validate = useCallback(() => {
     if (!formData.nombreCompleto.trim()) {
       mostrarAlert("El Nombre es obligatorio", "error");
       return false;
     }
-    if (!formData.rut.trim()) {
-      mostrarAlert("El Rut es obligatorio", "error");
-      return false;
-    }
-    const rutRegex = /^(\d{1,2}\.\d{3}\.\d{3}-[\dkK])$/;
-    if (!rutRegex.test(formData.rut)) {
+    if (!formData.rut.trim() || !limpiarYValidarRut(formData.rut)) {
       mostrarAlert("El Rut no es válido", "error");
       return false;
     }
@@ -86,35 +81,39 @@ function App() {
     setLoading(true);
 
     try {
-      const response = await fetch(`${API_BASE_URL}/empleados/`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          nombre_completo: formData.nombreCompleto,
-          rut: formData.rut,
-          fecha_nacimiento: formData.fechaNacimiento,
-          edad: edad,
-        }),
+      await apiRequest("/empleados/", "POST", {
+        nombre_completo: formData.nombreCompleto,
+        rut: formData.rut.toUpperCase(),
+        fecha_nacimiento: formData.fechaNacimiento,
+        edad: edad,
       });
+      mostrarAlert("Empleado guardado exitosamente.", "success");
+      setFormData({ nombreCompleto: "", rut: "", fechaNacimiento: "" });
+      setEdad(null);
+    } catch (error: unknown) {
+      let errorMessage = "Error desconocido.";
 
-      if (response.ok) {
-        const data = await response.json();
-        console.log("Empleado guardado:", data);
-        mostrarAlert("Empleado guardado exitosamente.", "success");
-        setFormData({ nombreCompleto: "", rut: "", fechaNacimiento: "" });
-        setEdad(null);
-        // Aquí puedes agregar lógica adicional, como redirigir o mostrar un mensaje de éxito
-      } else {
-        const errorData = await response.json();
-        console.error("Error al guardar el empleado:", errorData);
-        mostrarAlert("Error al guardar el empleado.", "error");
-        // Manejar el error, por ejemplo, mostrando un mensaje al usuario
+      if (error instanceof Error) {
+        errorMessage = error.message;
       }
-    } catch (error) {
-      console.error("Error en la solicitud:", error);
-      mostrarAlert("Error en la solicitud.", "error");
+
+      if (typeof error === "object" && error !== null && "response" in error) {
+        const response = (
+          error as {
+            response?: { status?: number; data?: { message?: string } };
+          }
+        ).response;
+        if (response) {
+          if (response.status === 409) {
+            errorMessage = "El RUT ingresado ya existe.";
+          } else if (response.status === 400) {
+            errorMessage = "Datos inválidos. Revisa los campos.";
+          } else {
+            errorMessage = `Error: ${response.data?.message || "Error inesperado."}`;
+          }
+        }
+      }
+      mostrarAlert(`Error: ${errorMessage}`, "error");
     } finally {
       setLoading(false);
     }
@@ -187,7 +186,7 @@ function App() {
       </div>
 
       {/* Main Content */}
-      <main className="max-w-3xl mx-auto mt-8 px-4 relative z-10">
+      <main className="max-w-lg mx-auto mt-8 px-4 relative z-10">
         <div className="bg-white rounded-lg shadow-md p-6">
           <h1 className="text-2xl font-semibold text-gray-800 mb-6">
             Crear Funcionario

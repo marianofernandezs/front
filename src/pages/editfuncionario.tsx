@@ -4,6 +4,8 @@ import Link from "next/link";
 import withAuth from "@/hoc/withAuth";
 import { DateTime } from "luxon";
 import { useRouter } from "next/router";
+import { apiRequest, APIError } from "@/utils/api";
+import { documentoSchema } from "@/validations/documentoSchema";
 
 interface Documento {
   tipo: string;
@@ -19,9 +21,6 @@ interface Funcionario {
   documentos?: Documento[];
 }
 
-const FUNCIONARIOS_API_URL = process.env.NEXT_PUBLIC_EMPLEADOS_URL; // ||"http://127.0.0.1:8000/api/empleados";
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL; //|| "http://127.0.0.1:8000/api";
-
 // Hook para debouncing
 function useDebounce<T>(value: T, delay: number): T {
   const [debouncedValue, setDebouncedValue] = useState(value);
@@ -36,6 +35,28 @@ function EditFuncionario() {
   const [funcionarios, setFuncionarios] = useState<Funcionario[]>([]);
   const [busqueda, setBusqueda] = useState("");
   const debouncedBusqueda = useDebounce(busqueda, 300);
+  const [mensajeExito, setMensajeExito] = useState<string | null>(null);
+  const [mensajeError, setMensajeError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (mensajeError) {
+      const timeout = setTimeout(() => {
+        setMensajeError(null);
+      }, 4000); // 4 segundos
+
+      return () => clearTimeout(timeout); // limpiar si cambia antes
+    }
+  }, [mensajeError]);
+
+  useEffect(() => {
+    if (mensajeExito) {
+      const timeout = setTimeout(() => {
+        setMensajeExito(null);
+      }, 4000); // 4 segundos
+
+      return () => clearTimeout(timeout);
+    }
+  }, [mensajeExito]);
 
   // Filtrado memorizado de funcionarios basado en la búsqueda "debounced"
   const resultados = useMemo(() => {
@@ -67,30 +88,26 @@ function EditFuncionario() {
   const [documentoAEditar, setDocumentoAEditar] = useState<Documento | null>(
     null,
   );
-  const [mensajeExito, setMensajeExito] = useState<string | null>(null);
 
   // Caché de documentos para evitar llamadas repetidas
   const documentosCache = useRef<{ [rut: string]: Documento[] }>({});
 
-  // Obtención de funcionarios con AbortController para cancelar la petición si es necesario
-  useEffect(() => {
-    const controller = new AbortController();
-    const obtenerFuncionarios = async () => {
-      try {
-        const response = await fetch(`${FUNCIONARIOS_API_URL}/`, {
-          signal: controller.signal,
-        });
-        const data = await response.json();
-        setFuncionarios(data);
-      } catch (error: unknown) {
-        if (error instanceof Error && error.name !== "AbortError") {
-          console.error("Error al obtener funcionarios:", error);
-        }
+  const obtenerFuncionarios = useCallback(async () => {
+    try {
+      const data = await apiRequest("/empleados/");
+      setFuncionarios(data);
+    } catch (error: unknown) {
+      if (error instanceof APIError) {
+        setMensajeError(`❌ ${error.message}`);
+      } else {
+        setMensajeError("❌ Error inesperado al obtener funcionarios.");
       }
-    };
-    obtenerFuncionarios();
-    return () => controller.abort();
+    }
   }, []);
+
+  useEffect(() => {
+    obtenerFuncionarios();
+  }, [obtenerFuncionarios]);
 
   // Handler memorizado para actualizar la búsqueda
   const manejarBusqueda = useCallback(
@@ -106,25 +123,13 @@ function EditFuncionario() {
     setIsEditing(false);
 
     try {
-      // Hacer la petición para obtener los documentos
-      const response = await fetch(
-        `${BASE_URL}/empleados/${func.rut}/documentos/`,
-      );
+      const documentos = await apiRequest(`/empleados/${func.rut}/documentos/`);
 
-      if (response.ok) {
-        const documentos = await response.json();
+      // Guardar en caché para evitar llamadas repetidas
+      documentosCache.current[func.rut] = documentos;
 
-        // Guardar en caché para evitar llamadas repetidas
-        documentosCache.current[func.rut] = documentos;
-
-        // Actualizar el estado con los documentos obtenidos
-        setFuncionario({ ...func, documentos });
-      } else {
-        console.error(
-          "⚠️ No se pudieron obtener los documentos del funcionario",
-        );
-        setFuncionario(func); // Asegurar que al menos se cargue el funcionario
-      }
+      // Actualizar el estado con los documentos obtenidos
+      setFuncionario({ ...func, documentos });
     } catch (error) {
       console.error("❌ Error al seleccionar funcionario:", error);
       setFuncionario(func);
@@ -148,39 +153,34 @@ function EditFuncionario() {
   const handleDelete = useCallback(async () => {
     if (!funcionario) return;
     try {
-      const response = await fetch(
-        `${FUNCIONARIOS_API_URL}/${funcionario.rut}/`,
-        { method: "DELETE" },
-      );
-      if (response.ok) {
-        setFuncionarios((prev) =>
-          prev.filter((f) => f.rut !== funcionario.rut),
-        );
-        setFuncionario(null);
-        setShowDeleteModal(false);
-      } else {
-        console.error("Error al eliminar el funcionario");
-      }
+      await apiRequest(`/empleados/${funcionario.rut}/`, "DELETE");
+      setFuncionarios((prev) => prev.filter((f) => f.rut !== funcionario.rut));
+      setFuncionario(null);
+      setShowDeleteModal(false);
     } catch (error) {
-      console.error("Error en handleDelete:", error);
+      if (error instanceof APIError) {
+        setMensajeError(`❌ ${error.message}`);
+      } else {
+        setMensajeError("❌ Error inesperado al eliminar funcionario.");
+      }
     }
   }, [funcionario]);
 
   const handleSave = useCallback(async () => {
     if (!funcionario) return;
     try {
-      await fetch(`${FUNCIONARIOS_API_URL}/${funcionario.rut}/`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(funcionario),
-      });
+      await apiRequest(`/empleados/${funcionario.rut}/`, "PATCH", funcionario);
       setIsEditing(false);
       setMensajeExito("Funcionario actualizado exitosamente");
       setTimeout(() => {
         setMensajeExito("");
       }, 500);
     } catch (error) {
-      console.error("Error en handleSave:", error);
+      if (error instanceof APIError) {
+        setMensajeError(`❌ ${error.message}`);
+      } else {
+        setMensajeError("❌ Error inesperado al actualizar funcionario.");
+      }
     }
   }, [funcionario]);
 
@@ -199,8 +199,6 @@ function EditFuncionario() {
     setDocumentoAEditar(null);
   }, []);
 
-  console.log("Enviando petición a:", `${BASE_URL}/upload_funcionario_file/`);
-
   const editarDocumento = useCallback(
     async (
       rut: string,
@@ -218,40 +216,26 @@ function EditFuncionario() {
         formData.append("archivo_anterior", archivo_anterior);
       }
 
-      // 📌 Imprimir los datos que se están enviando
-      console.log("📤 FormData enviado:");
-      for (const pair of formData.entries()) {
-        console.log(`  ${pair[0]}:`, pair[1]);
-      }
-
       try {
-        console.log("📤 Enviando solicitud de actualización de documento...");
-        const response = await fetch(
-          `${BASE_URL}/update_funcionario_file/${rut}/${tipo}/`,
-          {
-            method: "PUT",
-            body: formData,
-          },
+        await apiRequest(
+          `/update_funcionario_file/${rut}/${tipo}/`,
+          "PUT",
+          formData,
+          true,
         );
 
-        if (response.ok) {
-          console.log("✅ Documento actualizado correctamente");
-          const documentosResponse = await fetch(
-            `${BASE_URL}/empleados/${rut}/documentos/`,
-          );
-          if (documentosResponse.ok) {
-            const documentos = await documentosResponse.json();
-            setFuncionario((prev) => (prev ? { ...prev, documentos } : null));
-          }
-        } else {
-          const errorData = await response.json();
-          console.error("❌ Error al actualizar documento:", errorData);
-        }
-      } catch (error) {
-        console.error(
-          "❌ Error al enviar solicitud de edición de documento:",
-          error,
+        const documentos = await apiRequest(
+          `/empleados/${rut}/documentos/`,
+          "GET",
         );
+        documentosCache.current[rut] = documentos;
+        setFuncionario((prev) => (prev ? { ...prev, documentos } : null));
+      } catch (error) {
+        if (error instanceof APIError) {
+          setMensajeError(`❌ ${error.message}`);
+        } else {
+          setMensajeError("❌ Error inesperado al actualizar documento.");
+        }
       }
     },
     [setFuncionario],
@@ -271,73 +255,51 @@ function EditFuncionario() {
       formData.append("fecha_vencimiento", fecha_vencimiento);
 
       try {
-        const response = await fetch(`${BASE_URL}/upload_funcionario_file/`, {
-          method: "POST",
-          body: formData,
-        });
+        const data = await apiRequest(
+          `/upload_funcionario_file/`,
+          "POST",
+          formData,
+          true,
+        );
 
-        const contentType = response.headers.get("content-type");
+        console.log("✅ Archivo subido correctamente", data);
 
-        if (!response.ok) {
-          console.error("❌ Error en la respuesta del servidor");
-          if (contentType && contentType.includes("application/json")) {
-            const errorData = await response.json();
-            console.error("🔴 Respuesta JSON de error:", errorData);
-          } else {
-            const text = await response.text();
-            console.error("🔴 Respuesta no JSON (probablemente HTML):", text);
-          }
-          return;
-        }
-
-        if (contentType && contentType.includes("application/json")) {
-          const data = await response.json();
-          console.log("✅ Archivo subido correctamente:", data);
-
-          // Recargar la lista de documentos después de la subida
-          const documentosResponse = await fetch(
-            `${BASE_URL}/empleados/${rut}/documentos/`,
-          );
-          if (documentosResponse.ok) {
-            const documentos = await documentosResponse.json();
-            documentosCache.current[rut] = documentos;
-            setFuncionario((prev) => (prev ? { ...prev, documentos } : null));
-          }
-        } else {
-          console.warn("⚠️ El servidor devolvió una respuesta que no es JSON.");
-        }
-
+        const documentos = await apiRequest(`/empleados/${rut}/documentos/`);
+        documentosCache.current[rut] = documentos;
+        setFuncionario((prev) => (prev ? { ...prev, documentos } : null));
         limpiarModal();
         setShowModal(false);
       } catch (error) {
-        console.error("❌ Error en la subida del archivo:", error);
+        if (error instanceof APIError) {
+          setMensajeError(`❌ ${error.message}`);
+        } else {
+          setMensajeError("❌ Error inesperado al subir archivo.");
+        }
       }
     },
     [limpiarModal],
   );
 
   const handleSubmit = useCallback(async () => {
-    if (!tipoDocumento || !fechaVencimiento || !funcionario?.rut) {
-      alert("❌ Por favor, completa todos los campos.");
+    if (!funcionario?.rut) {
+      setMensajeError("❌ Falta el RUT del funcionario.");
       return;
     }
 
-    if (!nuevoDocumento && isEditingDocumento) {
-      alert("❌ Debes seleccionar un nuevo archivo para actualizar.");
+    const validationResult = documentoSchema.safeParse({
+      file: nuevoDocumento,
+      tipo: tipoDocumento,
+      fecha_vencimiento: fechaVencimiento,
+    });
+
+    if (!validationResult.success) {
+      const firstError = validationResult.error.errors[0]?.message;
+      setMensajeError(`❌ ${firstError}`);
       return;
     }
-
-    console.log("📤 handleSubmit ejecutado");
-    console.log("isEditingDocumento:", isEditingDocumento);
-    console.log("Nuevo Documento:", nuevoDocumento);
-    console.log("Tipo:", tipoDocumento);
-    console.log("Fecha:", fechaVencimiento);
-    console.log("Funcionario:", funcionario?.rut);
-    console.log("Archivo Anterior:", documentoAEditar?.archivo);
 
     try {
       if (isEditingDocumento && documentoAEditar) {
-        console.log("📝 Actualizando documento...");
         await editarDocumento(
           funcionario.rut,
           tipoDocumento,
@@ -346,7 +308,6 @@ function EditFuncionario() {
           documentoAEditar.archivo, // <-- Pasamos el archivo anterior
         );
       } else {
-        console.log("📌 Subiendo nuevo documento...");
         await subirArchivo(
           funcionario.rut,
           tipoDocumento,
@@ -357,7 +318,9 @@ function EditFuncionario() {
 
       limpiarModal();
       setShowModal(false);
+      setMensajeError(null);
     } catch (error) {
+      setMensajeError("❌ Error al guardar el documento.");
       console.error("❌ Error en handleSubmit:", error);
     }
   }, [
@@ -416,25 +379,23 @@ function EditFuncionario() {
   const handleDeleteDocumento = useCallback(async () => {
     if (!funcionario || !documentoAEliminar) return;
     try {
-      const response = await fetch(
-        `${BASE_URL}/delete_funcionario_file/${funcionario.rut}/${documentoAEliminar.tipo}/`,
-        { method: "DELETE" },
+      await apiRequest(
+        `/delete_funcionario_file/${funcionario.rut}/${documentoAEliminar.tipo}/`,
+        "DELETE",
       );
-      if (response.ok) {
-        const documentosResponse = await fetch(
-          `${BASE_URL}/empleados/${funcionario.rut}/documentos/`,
-        );
-        const documentos = await documentosResponse.json();
-        documentosCache.current[funcionario.rut] = documentos;
-        setFuncionario((prev) => (prev ? { ...prev, documentos } : null));
-        setShowDeleteDocumentoModal(false);
-        setDocumentoAEliminar(null);
-      } else {
-        const errorData = await response.json();
-        console.error("Error al eliminar documento:", errorData);
-      }
+      const documentos = await apiRequest(
+        `/empleados/${funcionario.rut}/documentos/`,
+      );
+      documentosCache.current[funcionario.rut] = documentos;
+      setFuncionario((prev) => (prev ? { ...prev, documentos } : null));
+      setShowDeleteDocumentoModal(false);
+      setDocumentoAEliminar(null);
     } catch (error) {
-      console.error("Error al eliminar documento:", error);
+      if (error instanceof APIError) {
+        setMensajeError(`❌ ${error.message}`);
+      } else {
+        setMensajeError("❌ Error inesperado al eliminar documento.");
+      }
     }
   }, [funcionario, documentoAEliminar]);
 
@@ -502,7 +463,11 @@ function EditFuncionario() {
             {mensajeExito}
           </div>
         )}
-
+        {mensajeError && (
+          <div className="fixed top-8 left-1/2 transform -translate-x-1/2 bg-red-500 text-white py-2 px-6 rounded-md shadow-lg">
+            {mensajeError}
+          </div>
+        )}
         {/* Información del funcionario */}
         <div className="max-w-3xl mx-auto mt-8 px-4">
           <h1 className="text-2xl md:text-3xl font-bold text-center mb-6 text-gray-800">
@@ -789,7 +754,7 @@ function EditFuncionario() {
                       onClick={handleSubmit}
                       className="bg-blue-500 text-white px-4 py-2 rounded"
                     >
-                      Editar
+                      Actualizar
                     </button>
                   ) : (
                     <>
