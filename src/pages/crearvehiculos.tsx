@@ -1,67 +1,120 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Save } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import withAuth from "@/hoc/withAuth";
 import { useRouter } from "next/router";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { apiRequest, APIError } from "@/utils/api";
 
-if (!process.env.NEXT_PUBLIC_VEHICLES_API_URL) {
-  throw new Error("NEXT_PUBLIC_VEHICLES_API_URL no está definida");
-}
+const vehiculoSchema = z.object({
+  matricula: z
+    .string()
+    .min(2, "La matrícula es obligatoria")
+    .regex(/^[A-Z0-9.-]+$/, "Formato de matrícula inválido"),
+  numero_de_maquina: z
+    .number({ invalid_type_error: "Debe ser un número" })
+    .int()
+    .min(1, "Número de máquina inválido"),
+  marca: z.string().min(2, "Marca obligatoria"),
+  modelo: z.string().min(1, "Modelo obligatorio"),
+});
 
-const VEHICLES_API_URL = process.env.NEXT_PUBLIC_VEHICLES_API_URL; // ||("http://localhost:8000/api/vehiculos/");
-console.log("VEHICLES_API_URL:", VEHICLES_API_URL);
+type VehiculoFormData = z.infer<typeof vehiculoSchema>;
 
-function App() {
-  const [formData, setFormData] = useState({
-    matricula: "",
-    numero_de_maquina: 0,
-    marca: "",
-    modelo: "",
+function CrearVehiculo() {
+  const [vehiculos, setVehiculos] = useState<VehiculoFormData[]>([]);
+  const [mensajeError, setMensajeError] = useState<string | null>(null);
+  const [mensajeExito, setMensajeExito] = useState<string | null>(null);
+
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm<VehiculoFormData>({
+    resolver: zodResolver(vehiculoSchema),
   });
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    console.log("Datos a enviar:", formData);
-    try {
-      const response = await fetch(VEHICLES_API_URL, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          matricula: formData.matricula,
-          numero_de_maquina: formData.numero_de_maquina,
-          marca: formData.marca,
-          modelo: formData.modelo,
-        }),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        console.log("Vehículo guardado:", data);
-        alert("Creación de vehículo exitosa");
-        setFormData({
-          matricula: "",
-          numero_de_maquina: 0,
-          marca: "",
-          modelo: "",
-        });
-      } else {
-        const errorData = await response.json();
-        alert("Error al guardar el vehículo:");
-        console.error("Error al guardar el vehículo:", errorData);
-      }
-    } catch (error) {
-      console.error("Error en la solicitud:", error);
-      alert("Error en la solicitud");
-    }
-  };
 
   const router = useRouter();
 
   const irAInicio = () => {
     router.push("/application");
+  };
+
+  useEffect(() => {
+    const obtenerVehiculos = async () => {
+      try {
+        const data = await apiRequest("/vehiculos/");
+        setVehiculos(data);
+      } catch (error) {
+        console.error(error);
+        setMensajeError("❌ Error al obtener vehículos.");
+      } finally {
+      }
+    };
+    obtenerVehiculos();
+  }, []);
+
+  const onSubmit = async (data: VehiculoFormData) => {
+    setMensajeError(null);
+    setMensajeExito(null);
+
+    const matriculaNormalizada = data.matricula
+      .toUpperCase()
+      .replace(/\s/g, "");
+
+    const matriculaExiste = vehiculos.some(
+      (v) => v.matricula.toUpperCase() === matriculaNormalizada,
+    );
+
+    const numeroMaquinaExiste = vehiculos.some(
+      (v) => v.numero_de_maquina === data.numero_de_maquina,
+    );
+
+    if (matriculaExiste) {
+      setMensajeError("❌ La matrícula ya está registrada.");
+      return;
+    }
+
+    if (numeroMaquinaExiste) {
+      setMensajeError("❌ El número de máquina ya está registrado.");
+      return;
+    }
+
+    try {
+      await apiRequest("/vehiculos/", "POST", {
+        ...data,
+        matricula: matriculaNormalizada,
+      });
+      setMensajeExito("✅ Vehículo creado correctamente.");
+      reset();
+      setTimeout(() => setMensajeExito(null), 4000);
+    } catch (error) {
+      if (error instanceof APIError) {
+        const rawMsg =
+          error.data?.matricula?.[0] ||
+          error.data?.numero_de_maquina?.[0] ||
+          error.message;
+
+        let mensaje = `❌ ${rawMsg}`;
+
+        if (
+          rawMsg.toLowerCase().includes("already exists") ||
+          rawMsg.toLowerCase().includes("ya existe") ||
+          rawMsg.toLowerCase().includes("matrícula ya registrada")
+        ) {
+          mensaje =
+            "❌ La matrícula o el número de máquina ya está registrada.";
+        }
+
+        setMensajeError(mensaje);
+      } else {
+        setMensajeError("❌ Error inesperado al crear el vehículo.");
+      }
+    }
   };
 
   return (
@@ -120,7 +173,17 @@ function App() {
             Crear Vehículo
           </h1>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
+          {mensajeExito && (
+            <div className="mb-4 text-green-600 font-medium">
+              {mensajeExito}
+            </div>
+          )}
+
+          {mensajeError && (
+            <div className="mb-4 text-red-600 font-medium">{mensajeError}</div>
+          )}
+
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
             <div className="grid grid-cols-2 gap-6">
               {/* Left Column */}
               <div className="space-y-4">
@@ -131,12 +194,14 @@ function App() {
                   <input
                     placeholder="LL.PY-90"
                     type="text"
-                    value={formData.matricula}
-                    onChange={(e) =>
-                      setFormData({ ...formData, matricula: e.target.value })
-                    }
+                    {...register("matricula")}
                     className="text-black mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 bg-gray-50"
                   />
+                  {errors.matricula && (
+                    <p className="text-red-500 text-sm mt-1">
+                      {errors.matricula.message}
+                    </p>
+                  )}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700">
@@ -145,12 +210,14 @@ function App() {
                   <input
                     placeholder="Mercedes"
                     type="text"
-                    value={formData.marca}
-                    onChange={(e) =>
-                      setFormData({ ...formData, marca: e.target.value })
-                    }
+                    {...register("marca")}
                     className="text-black mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 bg-gray-50"
                   />
+                  {errors.marca && (
+                    <p className="text-red-500 text-sm mt-1">
+                      {errors.marca.message}
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -163,15 +230,14 @@ function App() {
                   <input
                     placeholder="13"
                     type="number"
-                    value={formData.numero_de_maquina}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        numero_de_maquina: parseInt(e.target.value),
-                      })
-                    }
+                    {...register("numero_de_maquina", { valueAsNumber: true })}
                     className="text-black mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 bg-gray-50"
                   />
+                  {errors.numero_de_maquina && (
+                    <p className="text-red-500 text-sm mt-1">
+                      {errors.numero_de_maquina.message}
+                    </p>
+                  )}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700">
@@ -180,12 +246,14 @@ function App() {
                   <input
                     placeholder="CLA-500"
                     type="text"
-                    value={formData.modelo}
-                    onChange={(e) =>
-                      setFormData({ ...formData, modelo: e.target.value })
-                    }
+                    {...register("modelo")}
                     className="text-black mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 bg-gray-50"
                   />
+                  {errors.modelo && (
+                    <p className="text-red-500 text-sm mt-1">
+                      {errors.modelo.message}
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
@@ -207,4 +275,4 @@ function App() {
   );
 }
 
-export default withAuth(App);
+export default withAuth(CrearVehiculo);

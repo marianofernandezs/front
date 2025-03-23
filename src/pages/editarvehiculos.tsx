@@ -5,6 +5,10 @@ import { useRouter } from "next/router";
 import withAuth from "@/hoc/withAuth";
 import { DateTime } from "luxon";
 import { apiRequest, APIError } from "@/utils/api";
+import { z } from "zod";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { documentoSchema } from "@/validations/documentoSchema";
 
 interface Documento {
   tipo: string;
@@ -19,8 +23,6 @@ interface Vehiculo {
   numero_de_maquina: number;
   documentos?: Documento[];
 }
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL; //|| "http://localhost:8000/api";
-const VEHICULOS_API_URL = `${API_BASE_URL}/vehiculos/`;
 
 function EditFuncionario() {
   const [vehiculos, setVehiculos] = useState<Vehiculo[]>([]);
@@ -33,67 +35,81 @@ function EditFuncionario() {
     null,
   );
   const [isEditing, setIsEditing] = useState(false);
-  const [nuevoDocumento, setNuevoDocumento] = useState<File | null>(null);
-  const [tipoDocumento, setTipoDocumento] = useState("");
-  const [fechaVencimiento, setFechaVencimiento] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showDeleteDocumentModal, setShowDeleteDocumentModal] = useState(false);
   const [documentoSeleccionado, setDocumentoSeleccionado] =
     useState<Documento | null>(null);
   const [mensajeExito, setMensajeExito] = useState<string | null>(null);
+  const [mensajeError, setMensajeError] = useState<string | null>(null);
+  const [isEditingDocumento, setIsEditingDocumento] = useState(false);
+  const [documentoAEditar, setDocumentoAEditar] = useState<Documento | null>(
+    null,
+  );
+
+  const handleEditDocument = (documento: Documento) => {
+    setDocumentoAEditar(documento);
+    setValue("tipo", documento.tipo);
+    setValue("fecha_vencimiento", documento.fecha_vencimiento || "");
+    setIsEditingDocumento(true);
+    setShowModal(true);
+  };
+
+  const {
+    register,
+    handleSubmit: handleSubmitForm,
+    reset,
+    setValue,
+    formState: { errors },
+  } = useForm<z.infer<typeof documentoSchema>>({
+    resolver: zodResolver(documentoSchema),
+  });
 
   useEffect(() => {
-    const obtenerFuncionarios = async () => {
+    const obtenerVehiculos = async () => {
       try {
-        const response = await fetch(VEHICULOS_API_URL);
-        const data = await response.json();
+        const data = await apiRequest("/vehiculos/");
         setVehiculos(data);
       } catch (error) {
-        console.error("Error al obtener vehiculos:", error);
+        if (error instanceof APIError) {
+          setMensajeError(`❌ ${error.message}`);
+        } else {
+          setMensajeError("❌ Error inesperado al obtener vehículos.");
+        }
       }
     };
-    obtenerFuncionarios();
+    obtenerVehiculos();
   }, []);
 
   const manejarBusqueda = (e: React.ChangeEvent<HTMLInputElement>) => {
     const valor = e.target.value;
     setBusqueda(valor);
-
-    if (valor.length > 0) {
-      const filtrados = vehiculos.filter((vehiculo) =>
-        vehiculo.matricula.toLowerCase().includes(valor.toLowerCase()),
-      );
-      setResultados(filtrados);
-    } else {
-      setResultados([]);
-    }
+    setResultados(
+      valor.length > 0
+        ? vehiculos.filter((v) =>
+            v.matricula.toUpperCase().includes(valor.toUpperCase()),
+          )
+        : [],
+    );
   };
 
   const seleccionarVehiculo = async (vehiculo: Vehiculo) => {
     setVehiculoSeleccionado(vehiculo);
     setBusqueda(vehiculo.matricula);
     setResultados([]);
-    setVehiculo({
-      matricula: vehiculo.matricula,
-      numero_de_maquina: vehiculo.numero_de_maquina,
-      marca: vehiculo.marca,
-      modelo: vehiculo.modelo,
-      documentos: [],
-    });
+    setVehiculo({ ...vehiculo, documentos: [] });
     setIsEditing(false);
-
-    const API_URL = `${VEHICULOS_API_URL.replace(/\/$/, "")}/${vehiculo.matricula}/documentos/`;
-
     try {
-      const response = await fetch(API_URL);
-      if (!response.ok) {
-        throw new Error("Error al obtener documentos");
-      }
-      const documentos = await response.json();
+      const documentos = await apiRequest(
+        `/vehiculos/${vehiculo.matricula}/documentos/`,
+      );
       setVehiculo((prev) => (prev ? { ...prev, documentos } : null));
     } catch (error) {
-      console.error("Error al obtener documentos:", error);
+      setMensajeError(
+        error instanceof APIError
+          ? `❌ ${error.message}`
+          : "❌ Error inesperado al obtener documentos.",
+      );
       setVehiculo((prev) => (prev ? { ...prev, documentos: [] } : null));
     }
   };
@@ -114,22 +130,17 @@ function EditFuncionario() {
 
   const handleDelete = async () => {
     if (vehiculo) {
-      const response = await fetch(
-        `${VEHICULOS_API_URL}${vehiculo.matricula}/`,
-        {
-          method: "DELETE",
-        },
-      );
-
-      if (response.ok) {
+      try {
+        await apiRequest(`/vehiculos/${vehiculo.matricula}/`, "DELETE");
         setVehiculos((prev) =>
           prev.filter((v) => v.matricula !== vehiculo.matricula),
         );
         setVehiculoSeleccionado(null);
         setVehiculo(null);
         setShowDeleteModal(false);
-      } else {
-        console.error("Error al eliminar el vehiculo");
+      } catch (error) {
+        setMensajeError("❌ Error al eliminar el vehículo.");
+        throw error;
       }
     }
   };
@@ -158,44 +169,28 @@ function EditFuncionario() {
         return;
       }
 
-      await fetch(`${VEHICULOS_API_URL}${vehiculo.matricula}/`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
+      try {
+        await apiRequest(`/vehiculos/${vehiculo.matricula}/`, "PATCH", {
           matricula: vehiculo.matricula,
           numero_de_maquina: vehiculo.numero_de_maquina,
           marca: vehiculo.marca,
           modelo: vehiculo.modelo,
-        }),
-      });
-      setIsEditing(false);
-      setMensajeExito("Vehículo actualizado exitosamente");
-      setTimeout(() => {
-        setMensajeExito("");
-      }, 500);
+        });
+
+        setIsEditing(false);
+        setMensajeExito("Vehículo actualizado exitosamente");
+        setTimeout(() => setMensajeExito(null), 4000);
+      } catch (error) {
+        setMensajeError("❌ Error al guardar los cambios del vehículo.");
+        throw error;
+      }
     }
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      setNuevoDocumento(file);
-    }
-  };
-
-  const handleSubmit = async () => {
-    if (nuevoDocumento && tipoDocumento && fechaVencimiento) {
-      await subirArchivo(
-        vehiculo?.matricula || "",
-        tipoDocumento,
-        nuevoDocumento,
-        fechaVencimiento,
-      );
-      setShowModal(false);
-    } else {
-      alert("Por favor, completa todos los campos.");
+      setValue("file", file);
     }
   };
 
@@ -210,54 +205,22 @@ function EditFuncionario() {
     formData.append("tipo", tipo);
     formData.append("fecha_vencimiento", fecha_vencimiento);
 
-    const response = await fetch(
-      `${VEHICULOS_API_URL}${matricula}/documentos/upload/`,
-      {
-        method: "POST",
-        body: formData,
-      },
-    );
-
-    if (response.ok) {
-      const documentosResponse = await fetch(
-        `${VEHICULOS_API_URL}${matricula}/documentos/`,
+    try {
+      await apiRequest(
+        `/vehiculos/${matricula}/documentos/upload/`,
+        "POST",
+        formData,
+        true,
       );
-      const documentos = await documentosResponse.json();
+
+      const documentos = await apiRequest(
+        `/vehiculos/${matricula}/documentos/`,
+      );
       setVehiculo((prev) => (prev ? { ...prev, documentos } : null));
-    } else {
-      const errorData = await response.json();
-      console.error("Error al subir archivo:", errorData);
+    } catch (error) {
+      throw error;
     }
   };
-
-  const handleEditDocument = (documento: Documento) => {
-    setDocumentoSeleccionado(documento);
-    setTipoDocumento(documento.tipo);
-    setFechaVencimiento(documento.fecha_vencimiento || "");
-    setShowModal(true);
-  };
-
-  const handleEditSubmit = async () => {
-    if (
-      documentoSeleccionado &&
-      nuevoDocumento &&
-      tipoDocumento &&
-      fechaVencimiento
-    ) {
-      await editarDocumento(
-        vehiculo?.matricula || "",
-        documentoSeleccionado.tipo,
-        nuevoDocumento,
-        fechaVencimiento,
-        documentoSeleccionado.archivo,
-      );
-      setShowModal(false);
-      setDocumentoSeleccionado(null);
-    } else {
-      alert("Por favor, completa todos los campos.");
-    }
-  };
-
   const editarDocumento = async (
     matricula: string,
     tipo: string,
@@ -274,47 +237,38 @@ function EditFuncionario() {
       formData.append("archivo_anterior", archivo_anterior);
     }
 
-    const response = await fetch(
-      `${API_BASE_URL}/vehiculos/${matricula}/documentos/${tipo}/update/`,
-      {
-        method: "PUT",
-        body: formData,
-      },
-    );
-
-    if (response.ok) {
-      const documentosResponse = await fetch(
-        `${VEHICULOS_API_URL}${matricula}/documentos/`,
+    try {
+      await apiRequest(
+        `/vehiculos/${matricula}/documentos/${tipo}/update/`,
+        "PUT",
+        formData,
+        true,
       );
-      const documentos = await documentosResponse.json();
+      const documentos = await apiRequest(
+        `/vehiculos/${matricula}/documentos/`,
+      );
       setVehiculo((prev) => (prev ? { ...prev, documentos } : null));
-    } else {
-      const errorData = await response.json();
-      console.error("Error al editar archivo:", errorData);
+    } catch (error) {
+      throw error;
     }
   };
 
   const handleDeleteDocument = async () => {
-    if (vehiculo && documentoSeleccionado) {
-      try {
-        const response = await fetch(
-          `${VEHICULOS_API_URL}${vehiculo.matricula}/documentos/${documentoSeleccionado.tipo}/delete/`,
-          { method: "DELETE" },
-        );
-        if (response.ok) {
-          const documentosResponse = await fetch(
-            `${VEHICULOS_API_URL}${vehiculo.matricula}/documentos/`,
-          );
-          const documentos = await documentosResponse.json();
-          setVehiculo((prev) => (prev ? { ...prev, documentos } : null));
-          setShowDeleteDocumentModal(false);
-        } else {
-          const errorData = await response.json();
-          console.error("Error al eliminar documento:", errorData);
-        }
-      } catch (error) {
-        console.error("Error al eliminar documento:", error);
-      }
+    if (!vehiculo || !documentoSeleccionado) return;
+    try {
+      await apiRequest(
+        `/vehiculos/${vehiculo.matricula}/documentos/${documentoSeleccionado.tipo}/delete/`,
+        "DELETE",
+      );
+      const documentos = await apiRequest(
+        `/vehiculos/${vehiculo.matricula}/documentos/`,
+      );
+      setVehiculo((prev) => (prev ? { ...prev, documentos } : null));
+      setShowDeleteDocumentModal(false);
+      setMensajeError(null);
+    } catch (error) {
+      setMensajeError("❌ Error al eliminar el documento.");
+      console.error(error);
     }
   };
 
@@ -324,18 +278,13 @@ function EditFuncionario() {
     router.push("/application");
   };
 
-  const irAVerMantenimiento = () => {
-    router.push("/vermantenimiento");
-  };
-
   const irACrearMantenimiento = () => {
     router.push("/crearmantenimiento");
   };
 
   const irACrearVehiculo = () => {
-    router.push("/crearvehiculo");
+    router.push("/crearvehiculos");
   };
-
   return (
     <div className="relative min-h-screen w-full overflow-hidden bg-white">
       {/* Fondo con opacidad */}
@@ -396,6 +345,15 @@ function EditFuncionario() {
           </div>
         )}
 
+        {mensajeError && (
+          <div
+            className="fixed top-8 left-1/2 transform -translate-x-1/2 bg-red-500 text-white py-2 px-6 rounded-md shadow-lg"
+            role="alert"
+          >
+            {mensajeError}
+          </div>
+        )}
+
         {/* Información del funcionario */}
         <div className="max-w-3xl mx-auto mt-8 px-4">
           <h1 className="text-2xl font-bold text-center mb-6 text-gray-800">
@@ -436,9 +394,7 @@ function EditFuncionario() {
                     <input
                       type="text"
                       value={vehiculo.matricula}
-                      onChange={(e) =>
-                        setVehiculo({ ...vehiculo, matricula: e.target.value })
-                      }
+                      readOnly
                       className="text-gray-600 border border-gray-300 rounded p-1 w-full"
                     />
                   ) : (
@@ -589,14 +545,8 @@ function EditFuncionario() {
               Eliminar Vehiculo
             </button>
             <button
-              onClick={irAVerMantenimiento}
-              className="bg-green-500 text-white p-4 rounded-lg hover:bg-green-600 transition-colors w-full"
-            >
-              Ver Mantenimiento
-            </button>
-            <button
               onClick={irACrearMantenimiento}
-              className="bg-yellow-500 text-white p-4 rounded-lg hover:bg-yellow-600 transition-colors w-full"
+              className="bg-green-500 text-white p-4 rounded-lg hover:bg-green-600 transition-colors w-full"
             >
               Crear Mantenimiento
             </button>
@@ -639,14 +589,18 @@ function EditFuncionario() {
             <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
               <div className="bg-white p-6 rounded-lg shadow-lg">
                 <h2 className="text-lg font-bold mb-4 text-gray-800">
-                  Subir Documento
+                  {isEditingDocumento ? "Editar Documento" : "Subir Documento"}
                 </h2>
                 <label className="font-semibold text-gray-800">Tipo:</label>
                 <select
-                  value={tipoDocumento}
-                  onChange={(e) => setTipoDocumento(e.target.value)}
-                  className="border border-gray-300 rounded p-1 w-full text-black"
+                  {...register("tipo")}
+                  className="text-gray-800 border border-gray-300 rounded p-1 w-full"
                 >
+                  {errors.tipo && (
+                    <p className="text-red-500 text-sm mt-1">
+                      {errors.tipo.message}
+                    </p>
+                  )}
                   <option value="">Seleccionar tipo de documento</option>
                   <option value="seguro">Seguro</option>
                   <option value="padron">Padron</option>
@@ -659,58 +613,70 @@ function EditFuncionario() {
                   type="file"
                   accept=".pdf"
                   onChange={handleFileChange}
-                  className="mt-2 text-black"
+                  className="text-gray-800 p-1 mt-2"
                 />
                 <label className="font-semibold text-gray-800 mt-2">
                   Fecha de Vencimiento:
                 </label>
                 <input
                   type="date"
-                  value={fechaVencimiento}
-                  onChange={(e) => setFechaVencimiento(e.target.value)}
-                  className="border border-gray-300 rounded p-1 mt-1 w-full text-black"
+                  {...register("fecha_vencimiento")}
+                  className="text-gray-800 border border-gray-300 rounded p-1 mt-1 w-full"
                 />
-                <button
-                  onClick={handleSubmit}
-                  className="bg-blue-500 text-white p-2 rounded-lg mt-2"
-                >
-                  Agregar
-                </button>
-                <button
-                  onClick={() => setShowModal(false)}
-                  className="bg-red-500 text-white p-2 rounded-lg mt-2"
-                >
-                  Cerrar
-                </button>
-                <button
-                  onClick={handleEditSubmit}
-                  className="bg-blue-500 text-white p-2 rounded-lg mt-2"
-                >
-                  Editar
-                </button>
-              </div>
-            </div>
-          )}
-          {showDeleteDocumentModal && (
-            <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
-              <div className="bg-white p-5 rounded-lg shadow-lg">
-                <h2 className="text-lg font-bold mb-4 text-gray-800">
-                  Confirmar Eliminación de Documento
-                </h2>
-                <p className="text-gray-800">
-                  ¿Estás seguro de que deseas eliminar el documento{" "}
-                  {documentoSeleccionado?.tipo}?
-                </p>
-                <div className="mt-4 space-x-3">
+                {errors.fecha_vencimiento && (
+                  <p className="text-red-500 text-sm mt-1">
+                    {errors.fecha_vencimiento.message}
+                  </p>
+                )}
+                <div className="flex gap-2 mt-4">
                   <button
-                    onClick={handleDeleteDocument}
-                    className="bg-red-500 text-white p-2 rounded-lg"
+                    onClick={handleSubmitForm(async (data) => {
+                      if (!vehiculo?.matricula) return;
+                      try {
+                        if (isEditingDocumento && documentoAEditar) {
+                          await editarDocumento(
+                            vehiculo.matricula,
+                            documentoAEditar.tipo,
+                            data.file,
+                            data.fecha_vencimiento,
+                            documentoAEditar.archivo,
+                          );
+                        } else {
+                          await subirArchivo(
+                            vehiculo.matricula,
+                            data.tipo,
+                            data.file,
+                            data.fecha_vencimiento,
+                          );
+                        }
+
+                        setShowModal(false);
+                        setDocumentoAEditar(null);
+                        setIsEditingDocumento(false);
+                        setMensajeExito("✅ Documento guardado correctamente");
+                        setTimeout(() => setMensajeExito(null), 4000);
+                        reset();
+                      } catch (error) {
+                        if (error instanceof APIError) {
+                          setMensajeError(`❌ ${error.message}`);
+                        } else {
+                          setMensajeError("❌ Error al guardar el documento");
+                        }
+                      }
+                    })}
+                    className="bg-blue-500 text-white px-4 py-2 rounded"
                   >
-                    Eliminar
+                    {isEditingDocumento ? "Actualizar" : "Agregar"}
                   </button>
+
                   <button
-                    onClick={() => setShowDeleteDocumentModal(false)}
-                    className="bg-gray-300 text-black p-2 rounded-lg"
+                    onClick={() => {
+                      setShowModal(false);
+                      setIsEditingDocumento(false);
+                      setDocumentoAEditar(null);
+                      reset();
+                    }}
+                    className="bg-red-500 text-white px-4 py-2 rounded"
                   >
                     Cancelar
                   </button>
@@ -719,8 +685,37 @@ function EditFuncionario() {
             </div>
           )}
         </div>
+
+        {showDeleteDocumentModal && (
+          <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
+            <div className="bg-white p-5 rounded-lg shadow-lg">
+              <h2 className="text-lg font-bold mb-4 text-gray-800">
+                Confirmar Eliminación de Documento
+              </h2>
+              <p className="text-gray-800">
+                ¿Estás seguro de que deseas eliminar el documento{" "}
+                {documentoSeleccionado?.tipo}?
+              </p>
+              <div className="mt-4 space-x-3">
+                <button
+                  onClick={handleDeleteDocument}
+                  className="bg-red-500 text-white p-2 rounded-lg"
+                >
+                  Eliminar
+                </button>
+                <button
+                  onClick={() => setShowDeleteDocumentModal(false)}
+                  className="bg-gray-300 text-black p-2 rounded-lg"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
 }
+
 export default withAuth(EditFuncionario);
