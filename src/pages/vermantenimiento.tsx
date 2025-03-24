@@ -4,6 +4,7 @@ import Link from "next/link";
 import withAuth from "@/hoc/withAuth";
 import { useRouter } from "next/router";
 import { DateTime } from "luxon";
+import { apiRequest } from "@/utils/api";
 
 interface Vehicle {
   id: number;
@@ -29,16 +30,6 @@ interface Maintenance {
   observaciones: string;
 }
 
-if (!process.env.NEXT_PUBLIC_VEHICLES_API_URL) {
-  throw new Error("NEXT_PUBLIC_VEHICLES_API_URL no está definida");
-}
-if (!process.env.NEXT_PUBLIC_MAINTENANCE_API_URL) {
-  throw new Error("NEXT_PUBLIC_MAINTENANCE_API_URL no está definida");
-}
-
-const VEHICLES_API_URL = process.env.NEXT_PUBLIC_VEHICLES_API_URL; // ||"http://localhost:8000/api/vehiculos/";
-const MAINTENANCE_API_URL = process.env.NEXT_PUBLIC_MAINTENANCE_API_URL; // ||"http://localhost:8000/api/mantenimientos/";
-
 function App() {
   const [selectedVehicleMatricula, setSelectedVehicleMatricula] = useState("");
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
@@ -48,15 +39,17 @@ function App() {
   const [editMode, setEditMode] = useState(false);
   const [editableMaintenance, setEditableMaintenance] =
     useState<Maintenance | null>(null);
+  const [mensaje, setMensaje] = useState<string | null>(null);
+  const [mensajeError, setMensajeError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchVehicles = async () => {
       try {
-        const response = await fetch(VEHICLES_API_URL);
-        const data = await response.json();
+        const data = await apiRequest("/vehiculos/");
         setVehicles(data);
       } catch (error) {
         console.error("Error al obtener vehículos:", error);
+        setMensajeError("Error al obtener vehículos.");
       }
     };
     fetchVehicles();
@@ -64,16 +57,12 @@ function App() {
 
   const fetchMaintenances = async (matricula: string) => {
     try {
-      const response = await fetch(`${MAINTENANCE_API_URL}/${matricula}/`);
-      const data = await response.json();
+      const data = await apiRequest(`/mantenimientos/${matricula}/`);
       setMaintenances(data);
-      if (data.length > 0) {
-        setSelectedMaintenance(data[0]);
-      } else {
-        setSelectedMaintenance(null);
-      }
+      setSelectedMaintenance(data.length > 0 ? data[0] : null);
     } catch (error) {
       console.error("Error al obtener mantenimientos:", error);
+      setMensajeError("Error al obtener mantenimientos.");
     }
   };
 
@@ -118,32 +107,27 @@ function App() {
   const handleSave = async () => {
     if (!editableMaintenance) return;
     try {
-      const response = await fetch(
-        `${MAINTENANCE_API_URL}${selectedVehicleMatricula}/${editableMaintenance.numero_mantenimiento}/`,
-        {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(editableMaintenance),
-        },
+      await apiRequest(
+        `/mantenimientos/${selectedVehicleMatricula}/${editableMaintenance.numero_mantenimiento}/`,
+        "PUT",
+        editableMaintenance,
       );
-      if (response.ok) {
-        const updatedMaintenance = await response.json();
-        setMaintenances((prev) =>
-          prev.map((m) =>
-            m.numero_mantenimiento === updatedMaintenance.numero_mantenimiento
-              ? updatedMaintenance
-              : m,
-          ),
-        );
-        setSelectedMaintenance(updatedMaintenance);
-        setEditMode(false);
-        setEditableMaintenance(null);
-        window.alert("Guardado exitosamente");
-      } else {
-        console.error("Error al guardar el mantenimiento");
-      }
+      setMaintenances((prev) =>
+        prev.map((m) =>
+          m.numero_mantenimiento === editableMaintenance.numero_mantenimiento
+            ? editableMaintenance
+            : m,
+        ),
+      );
+      setSelectedMaintenance(editableMaintenance);
+      setEditMode(false);
+      setEditableMaintenance(null);
+      setMensaje("✅ Mantenimiento guardado correctamente.");
+      setTimeout(() => setMensaje(null), 4000);
     } catch (error) {
-      console.error("Error al guardar el mantenimiento:", error);
+      console.error("Error al guardar:", error);
+      setMensajeError("❌ Error al guardar el mantenimiento.");
+      setTimeout(() => setMensajeError(null), 4000);
     }
   };
 
@@ -173,30 +157,27 @@ function App() {
   };
   const handleDeleteMaintenance = async () => {
     if (!selectedMaintenance || !selectedVehicleMatricula) {
-      window.alert("Seleccione un mantenimiento para eliminar.");
+      setMensajeError("❌ Seleccione un mantenimiento para eliminar.");
       return;
     }
     try {
-      const response = await fetch(
-        `${MAINTENANCE_API_URL}${selectedVehicleMatricula}/${selectedMaintenance.numero_mantenimiento}/`,
-        { method: "DELETE" },
+      await apiRequest(
+        `/mantenimientos/${selectedVehicleMatricula}/${selectedMaintenance.numero_mantenimiento}/`,
+        "DELETE",
       );
-      if (response.ok) {
-        window.alert("Mantenimiento eliminado exitosamente.");
-        // Actualizamos la lista de mantenimientos eliminando el borrado
-        setMaintenances((prev) =>
-          prev.filter(
-            (m) =>
-              m.numero_mantenimiento !==
-              selectedMaintenance.numero_mantenimiento,
-          ),
-        );
-        setSelectedMaintenance(null);
-      } else {
-        console.error("Error al eliminar el mantenimiento");
-      }
+      setMaintenances((prev) =>
+        prev.filter(
+          (m) =>
+            m.numero_mantenimiento !== selectedMaintenance.numero_mantenimiento,
+        ),
+      );
+      setSelectedMaintenance(null);
+      setMensaje("✅ Mantenimiento eliminado correctamente.");
+      setTimeout(() => setMensaje(null), 4000);
     } catch (error) {
-      console.error("Error en la eliminación del mantenimiento:", error);
+      console.error("Error en la eliminación:", error);
+      setMensajeError("❌ Error al eliminar el mantenimiento.");
+      setTimeout(() => setMensajeError(null), 4000);
     }
   };
 
@@ -240,6 +221,24 @@ function App() {
           </div>
         </div>
       </nav>
+
+      {mensaje && (
+        <div
+          className="fixed top-8 left-1/2 transform -translate-x-1/2 bg-green-500 text-white py-2 px-6 rounded-md shadow-lg z-50"
+          role="alert"
+        >
+          {mensaje}
+        </div>
+      )}
+
+      {mensajeError && (
+        <div
+          className="fixed top-8 left-1/2 transform -translate-x-1/2 bg-red-500 text-white py-2 px-6 rounded-md shadow-lg z-50"
+          role="alert"
+        >
+          {mensajeError}
+        </div>
+      )}
 
       {/* Contenido principal */}
       <div className="relative z-10 p-4 sm:p-6 lg:p-8">
@@ -294,7 +293,7 @@ function App() {
               {/* Detalle del mantenimiento */}
               {selectedMaintenance && (
                 <div className="space-y-6">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-gray-700">
                     {/* Campos de tipo texto o fecha */}
                     {[
                       { label: "Fecha", name: "fecha", type: "date" },
@@ -378,7 +377,7 @@ function App() {
                         name="observaciones"
                         value={editableMaintenance?.observaciones || ""}
                         onChange={handleFieldChange}
-                        className="w-full border rounded-md p-2 bg-white"
+                        className="w-full border rounded-md p-2 bg-white text-gray-800"
                         rows={4}
                       />
                     ) : (
@@ -386,7 +385,7 @@ function App() {
                         name="observaciones"
                         value={selectedMaintenance.observaciones}
                         readOnly
-                        className="w-full border rounded-md p-2 bg-gray-50"
+                        className="w-full border rounded-md p-2 bg-gray-50 text-gray-700"
                         rows={4}
                       />
                     )}

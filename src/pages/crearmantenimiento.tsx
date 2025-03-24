@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import withAuth from "@/hoc/withAuth";
 import { useRouter } from "next/router";
+import { apiRequest, APIError } from "@/utils/api";
 
 interface Vehicle {
   id: number;
@@ -11,21 +12,13 @@ interface Vehicle {
   modelo: string;
 }
 
-if (!process.env.NEXT_PUBLIC_VEHICLES_API_URL) {
-  throw new Error("NEXT_PUBLIC_VEHICLES_API_URL no está definido");
-}
-if (!process.env.NEXT_PUBLIC_MAINTENANCE_API_URL) {
-  throw new Error("NEXT_PUBLIC_MAINTENANCE_API_URL no está definido");
-}
-
-const VEHICLES_API_URL = process.env.NEXT_PUBLIC_VEHICLES_API_URL; // ||"http://localhost:8000/api/vehiculos/";
-const MAINTENANCE_API_URL = process.env.NEXT_PUBLIC_MAINTENANCE_API_URL; // ||"http://localhost:8000/api/mantenimientos/";
-
-function App() {
+function CrearMantenimiento() {
   const [showForm, setShowForm] = useState(false);
   const [selectedVehicleMatricula, setSelectedVehicleMatricula] = useState("");
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [loading, setLoading] = useState(false);
+  const [mensaje, setMensaje] = useState<string | null>(null);
+  const [mensajeError, setMensajeError] = useState<string | null>(null);
 
   const [maintenanceData, setMaintenanceData] = useState({
     numero_mantenimiento: "",
@@ -47,29 +40,16 @@ function App() {
 
   // Fetch vehicles usando AbortController para evitar actualizaciones si el componente se desmonta
   useEffect(() => {
-    const controller = new AbortController();
     const fetchVehicles = async () => {
       try {
-        const response = await fetch(VEHICLES_API_URL, {
-          signal: controller.signal,
-        });
-        if (response.ok) {
-          const data = await response.json();
-          setVehicles(data);
-        } else {
-          console.error("Error al obtener vehículos:", response.statusText);
-        }
-      } catch (error: unknown) {
-        if (error instanceof Error && error.name !== "AbortError") {
-          console.error("Error al obtener vehículos:", error);
-        }
+        const data = await apiRequest("/vehiculos/");
+        setVehicles(data);
+      } catch (error) {
+        console.error(error);
+        setMensajeError("❌ Error al obtener vehículos.");
       }
     };
     fetchVehicles();
-
-    return () => {
-      controller.abort();
-    };
   }, []);
 
   // Manejo centralizado de los cambios en los inputs del formulario
@@ -87,55 +67,97 @@ function App() {
     }));
   };
 
+  const validarFormulario = () => {
+    const {
+      numero_mantenimiento,
+      kilometraje,
+      litros_de_aceite,
+      litros_de_refrigerante,
+    } = maintenanceData;
+
+    const mostrarError = (mensaje: string) => {
+      setMensajeError(`❌ ${mensaje}`);
+      setTimeout(() => setMensajeError(null), 4000);
+    };
+
+    if (!/^\d+$/.test(numero_mantenimiento)) {
+      mostrarError("El número de mantenimiento debe ser un número positivo.");
+      return false;
+    }
+
+    if (!/^\d+$/.test(kilometraje)) {
+      mostrarError("El kilometraje debe ser un número positivo.");
+      return false;
+    }
+
+    if (
+      !/^\d+(\.\d+)?$/.test(litros_de_aceite) ||
+      parseFloat(litros_de_aceite) <= 0
+    ) {
+      mostrarError("Los litros de aceite deben ser un número positivo.");
+      return false;
+    }
+
+    if (
+      !/^\d+(\.\d+)?$/.test(litros_de_refrigerante) ||
+      parseFloat(litros_de_refrigerante) < 0
+    ) {
+      mostrarError(
+        "Los litros de refrigerante deben ser un número igual o mayor a 0.",
+      );
+      return false;
+    }
+
+    return true;
+  };
+
   // Envío del formulario
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedVehicleMatricula) {
-      alert("Seleccione un vehículo");
+      setMensajeError("Seleccione un vehículo");
+      return;
+    }
+    if (!validarFormulario()) {
       return;
     }
     setLoading(true);
     try {
-      const response = await fetch(MAINTENANCE_API_URL, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          vehiculo: selectedVehicleMatricula,
-          ...maintenanceData,
-        }),
+      await apiRequest("/mantenimientos/", "POST", {
+        vehiculo: selectedVehicleMatricula,
+        ...maintenanceData,
       });
 
-      if (response.ok) {
-        alert("Mantenimiento guardado exitosamente");
-        setShowForm(false);
-        setSelectedVehicleMatricula("");
-        setMaintenanceData({
-          numero_mantenimiento: "",
-          fecha: "",
-          tipo_de_aceite: "",
-          litros_de_aceite: "",
-          refrigerante: "",
-          litros_de_refrigerante: "",
-          filtro_de_aceite: false,
-          filtro_de_polen: false,
-          filtro_de_aire: false,
-          filtro_de_petroleo: false,
-          kilometraje: "",
-          proxima_mantencion_kilometraje: "",
-          observaciones: "",
-        });
-      } else {
-        const errorData = await response.json();
-        console.error("Error al guardar el mantenimiento:", errorData);
-        alert(`Error: ${errorData.detail || "Error desconocido"}`);
-      }
+      setMensaje("Mantenimiento guardado exitosamente");
+      setShowForm(false);
+      setSelectedVehicleMatricula("");
+      setMaintenanceData({
+        numero_mantenimiento: "",
+        fecha: "",
+        tipo_de_aceite: "",
+        litros_de_aceite: "",
+        refrigerante: "",
+        litros_de_refrigerante: "",
+        filtro_de_aceite: false,
+        filtro_de_polen: false,
+        filtro_de_aire: false,
+        filtro_de_petroleo: false,
+        kilometraje: "",
+        proxima_mantencion_kilometraje: "",
+        observaciones: "",
+      });
     } catch (error) {
-      console.error("Error al guardar el mantenimiento:", error);
-      alert("Error al guardar el mantenimiento.");
+      if (error instanceof APIError) {
+        setMensajeError(`❌ ${error.message}`);
+      } else {
+        setMensajeError("❌ Error inesperado al guardar mantenimiento.");
+      }
     } finally {
       setLoading(false);
+      setTimeout(() => {
+        setMensaje(null);
+        setMensajeError(null);
+      }, 4000);
     }
   };
 
@@ -208,6 +230,23 @@ function App() {
           </div>
         </div>
       </nav>
+
+      {mensaje && (
+        <div
+          className="fixed top-20 left-1/2 transform -translate-x-1/2 bg-green-500 text-white py-2 px-6 rounded-md shadow-lg z-50"
+          role="alert"
+        >
+          {mensaje}
+        </div>
+      )}
+      {mensajeError && (
+        <div
+          className="fixed top-20 left-1/2 transform -translate-x-1/2 bg-red-500 text-white py-2 px-6 rounded-md shadow-lg z-50"
+          role="alert"
+        >
+          {mensajeError}
+        </div>
+      )}
 
       {/* Main Content */}
       <div className="relative z-10 p-4 sm:p-6 lg:p-8">
@@ -438,4 +477,4 @@ function App() {
   );
 }
 
-export default withAuth(App);
+export default withAuth(CrearMantenimiento);
