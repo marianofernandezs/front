@@ -5,6 +5,7 @@ import withAuth from "@/hoc/withAuth";
 import { useRouter } from "next/router";
 import { DateTime } from "luxon";
 import { apiRequest } from "@/utils/api";
+import { useAuth } from "@/context/AuthContext";
 
 interface Vehicle {
   id: number;
@@ -31,6 +32,7 @@ interface Maintenance {
 }
 
 function App() {
+  const { user } = useAuth();
   const [selectedVehicleMatricula, setSelectedVehicleMatricula] = useState("");
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [maintenances, setMaintenances] = useState<Maintenance[]>([]);
@@ -43,6 +45,8 @@ function App() {
   const [mensajeError, setMensajeError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!user) return;
+
     const fetchVehicles = async () => {
       try {
         const data = await apiRequest("/vehiculos/");
@@ -52,8 +56,9 @@ function App() {
         setMensajeError("Error al obtener vehículos.");
       }
     };
+
     fetchVehicles();
-  }, []);
+  }, [user]);
 
   const fetchMaintenances = async (matricula: string) => {
     try {

@@ -5,6 +5,7 @@ import Link from "next/link";
 import withAuth from "@/hoc/withAuth";
 import { useRouter } from "next/router";
 import { apiRequest, APIError } from "@/utils/api";
+import { useAuth } from "@/context/AuthContext";
 
 interface Vehicle {
   id: number;
@@ -13,6 +14,7 @@ interface Vehicle {
 }
 
 function CrearMantenimiento() {
+  const { user } = useAuth();
   const [showForm, setShowForm] = useState(false);
   const [selectedVehicleMatricula, setSelectedVehicleMatricula] = useState("");
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
@@ -40,17 +42,20 @@ function CrearMantenimiento() {
 
   // Fetch vehicles usando AbortController para evitar actualizaciones si el componente se desmonta
   useEffect(() => {
+    if (!user) return;
+
     const fetchVehicles = async () => {
       try {
-        const data = await apiRequest("/vehiculos/");
-        setVehicles(data);
-      } catch (error) {
-        console.error(error);
-        setMensajeError("❌ Error al obtener vehículos.");
+        const response = await apiRequest("/vehiculos/");
+        setVehicles(response);
+      } catch (error: unknown) {
+        console.error("Error al obtener vehículos:", error);
+        setMensajeError("Error al obtener vehículos.");
+        setTimeout(() => setMensajeError(null), 4000);
       }
     };
     fetchVehicles();
-  }, []);
+  }, [user]);
 
   // Manejo centralizado de los cambios en los inputs del formulario
   const handleInputChange = (
