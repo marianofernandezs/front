@@ -10,6 +10,7 @@ import {
 } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { apiRequest } from "@/utils/api";
+import { decode } from "querystring";
 
 interface User {
   token: string;
@@ -92,6 +93,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       if (token && token !== "undefined") {
         const decoded = decodeJWT(token);
+
+        if (decoded?.exp && Date.now() >= decoded.exp * 1000) {
+          console.warn("Token expirado.");
+          logout();
+          return;
+        }
 
         if (decoded && decoded.user_id) {
           try {
