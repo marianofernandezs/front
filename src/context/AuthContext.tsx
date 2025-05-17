@@ -66,6 +66,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       localStorage.setItem("token", token);
 
+      console.log("token recibido:", token); //Borrar despues
+      console.log("llamando a /profile/"); // Borrar despues
+
       try {
         const profile = await apiRequest("/profile/");
         setUser({ token, name: profile.username || name });

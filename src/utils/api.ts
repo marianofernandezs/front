@@ -42,6 +42,9 @@ export const apiRequest = async (
       : JSON.stringify(body);
   }
 
+  console.log("📡 Request a:", `${API_BASE_URL}${endpoint}`);
+  console.log("📦 Headers:", [...headers.entries()]);
+
   // 3️⃣ Hacer la solicitud y manejar la respuesta
   try {
     const res = await fetch(`${API_BASE_URL}${endpoint}`, options);
