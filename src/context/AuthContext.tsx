@@ -82,7 +82,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     const checkAuth = async () => {
-      const token = localStorage.getItem("token");
+      let token: string | null = null;
+
+      try {
+        token = localStorage.getItem("token");
+      } catch (err) {
+        console.warn("⚠️ No se pudo acceder a localStorage:", err);
+      }
 
       const publicRoutes = [
         "/",

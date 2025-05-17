@@ -29,8 +29,8 @@ export default function Home() {
       const response = await fetch(`${API_BASE_URL}/login/`, {
         method: "POST",
         body: JSON.stringify({
-          username,
-          password,
+          username: username.trim(),
+          password: password.trim(),
         }),
         headers: {
           "Content-Type": "application/json",
