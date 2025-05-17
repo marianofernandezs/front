@@ -10,7 +10,6 @@ import {
 } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { apiRequest } from "@/utils/api";
-import { decode } from "querystring";
 
 interface User {
   token: string;
