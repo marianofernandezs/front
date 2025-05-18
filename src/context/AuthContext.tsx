@@ -69,20 +69,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       console.log("token recibido:", token); //Borrar despues
       console.log("llamando a /profile/"); // Borrar despues
 
-      for (let i = 0; i < 10; i++) {
-        const storedToken = localStorage.getItem("token");
-        if (storedToken === token) break;
-        await new Promise((res) => setTimeout(res, 50)); // espera 50ms
-      }
+      await new Promise((resolve) => setTimeout(resolve, 0));
 
       try {
         const profile = await apiRequest("/profile/");
         setUser({ token, name: profile.username || name });
         setIsAuthenticated(true);
 
-        setTimeout(() => {
-          router.push("/application");
-        }, 50);
+        router.push("/application");
       } catch (error) {
         console.error("Error al obtener el perfil:", error);
         logout();
@@ -133,7 +127,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           logout();
         }
       } else {
-        if (!pathname || !publicRoutes.includes(pathname)) {
+        if (!pathname || (!publicRoutes.includes(pathname) && !token)) {
           router.push("/");
         }
       }
