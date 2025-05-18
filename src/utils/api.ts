@@ -41,7 +41,7 @@ export const apiRequest = async (
     method,
     headers,
     mode: "cors",
-    credentials: "include",
+    credentials: "omit",
   };
 
   if (body && method !== "GET" && method !== "HEAD") {
@@ -52,6 +52,8 @@ export const apiRequest = async (
 
   console.log("📡 Request a:", `${API_BASE_URL}${endpoint}`);
   console.log("📦 Headers:", [...headers.entries()]);
+
+  console.log("fetching with options: ", options);
 
   // 3️⃣ Hacer la solicitud y manejar la respuesta
   try {

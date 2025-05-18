@@ -92,6 +92,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         console.warn("⚠️ No se pudo acceder a localStorage:", err);
       }
 
+      console.log("📲 [AuthContext] Token detectado en checkAuth:", token);
+      console.log("📲 [AuthContext] pathname:", pathname);
+
       const publicRoutes = [
         "/",
         "/register",
