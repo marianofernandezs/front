@@ -73,7 +73,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const profile = await apiRequest("/profile/");
         setUser({ token, name: profile.username || name });
         setIsAuthenticated(true);
-        router.push("/application");
+
+        setTimeout(() => {
+          router.push("/application");
+        }, 100);
       } catch (error) {
         console.error("Error al obtener el perfil:", error);
         logout();
