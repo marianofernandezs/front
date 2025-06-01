@@ -249,7 +249,7 @@ function EditFuncionario() {
       fecha_vencimiento: string,
     ) => {
       const formData = new FormData();
-      formData.append("file", archivo);
+      formData.append("archivo", archivo);
       formData.append("rut", rut);
       formData.append("tipo", tipo);
       formData.append("fecha_vencimiento", fecha_vencimiento);

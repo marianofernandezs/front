@@ -17,15 +17,9 @@ export const apiRequest = async (
   body: unknown = null,
   isFormData: boolean = false,
 ) => {
-  console.log(
-    "📱 [apiRequest] localStorage disponible:",
-    typeof window !== "undefined" && typeof localStorage !== "undefined",
-  );
   // 1️⃣ Obtener el token del localStorage
   const token = localStorage.getItem("token");
   if (!token) throw new APIError("No autenticado", 401);
-
-  console.log("📱 [apiRequest] Token recuperado:", token);
 
   // 2️⃣ Definir los headers de la solicitud
   const headers = new Headers();
@@ -49,11 +43,6 @@ export const apiRequest = async (
       ? (body as BodyInit) // FormData ya es BodyInit
       : JSON.stringify(body);
   }
-
-  console.log("📡 Request a:", `${API_BASE_URL}${endpoint}`);
-  console.log("📦 Headers:", [...headers.entries()]);
-
-  console.log("fetching with options: ", options);
 
   // 3️⃣ Hacer la solicitud y manejar la respuesta
   try {
