@@ -9,6 +9,8 @@ export default function ForgotPassword() {
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
   const router = useRouter();
+  const [emailError, setEmailError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
   const iralogin = () => {
     router.push("/");
@@ -16,19 +18,33 @@ export default function ForgotPassword() {
   const FORGOT_PASSWORD_API_URL =
     process.env.NEXT_PUBLIC_FORGOT_PASSWORD_API_URL;
   const handleForgotPassword = async () => {
-    const response = await fetch(`${FORGOT_PASSWORD_API_URL}`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ email }),
-    });
+    setEmailError("");
+    setMessage("");
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      setEmailError("Ingresa un correo válido.");
+      return;
+    }
 
-    if (response.ok) {
-      setMessage("Revisa tu correo para restablecer la contraseña.");
-      setEmail("");
-    } else {
-      setMessage("Error al enviar el correo. Verifica tu dirección.");
+    try {
+      const response = await fetch(`${FORGOT_PASSWORD_API_URL}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email }),
+      });
+
+      if (response.ok) {
+        setMessage("Revisa tu correo para restablecer la contraseña.");
+        setEmail("");
+      } else {
+        setMessage("Error al enviar el correo. Verifica tu dirección.");
+      }
+    } catch {
+      setMessage("Ocurrió un error inesperado");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -63,13 +79,19 @@ export default function ForgotPassword() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
               />
+              {emailError && (
+                <p className="text-sm text-red-600 mt-1">{emailError}</p>
+              )}
             </div>
             <div className="space-y-3 pt-2">
               <button
-                className="w-full bg-blue-500 hover:bg-blue-600 text-white p-2 sm:p-3 rounded text-sm sm:text-base transition-colors"
+                className={`w-full ${
+                  isLoading ? "bg-gray-400" : "bg-blue-500 hover:bg-blue-600"
+                } text-white p-2 sm:p-3 rounded text-sm sm:text-base transition-colors`}
                 onClick={handleForgotPassword}
+                disabled={isLoading}
               >
-                Enviar
+                {isLoading ? "Enviando...." : "Enviar"}
               </button>
               <p className="text-center text-sm text-gray-700">{message}</p>
               <div className="flex justify-center">
