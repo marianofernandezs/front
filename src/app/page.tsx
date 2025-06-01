@@ -39,14 +39,10 @@ export default function Home() {
         credentials: "include",
       });
 
-      console.log("Respuesta de la Api:", response.status);
-
       if (response.ok) {
         const data = await response.json();
-        console.log("Respuesta Completa de la Api:", data);
         if (data.token && data.user) {
           login(data.token, data.user);
-          console.log("Token recibido:", data.token);
           router.push("/application");
         } else {
           setError("Respuesta del servidor invalida");

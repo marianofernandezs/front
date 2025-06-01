@@ -66,9 +66,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       localStorage.setItem("token", token);
 
-      console.log("token recibido:", token); //Borrar despues
-      console.log("llamando a /profile/"); // Borrar despues
-
       await new Promise((resolve) => setTimeout(resolve, 0));
 
       try {
@@ -94,9 +91,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       } catch (err) {
         console.warn("⚠️ No se pudo acceder a localStorage:", err);
       }
-
-      console.log("📲 [AuthContext] Token detectado en checkAuth:", token);
-      console.log("📲 [AuthContext] pathname:", pathname);
 
       const publicRoutes = [
         "/",

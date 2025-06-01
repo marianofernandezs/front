@@ -1,5 +1,5 @@
 "use client";
-import { useRouter } from "next/router";
+import { useRouter, usePathname } from "next/navigation";
 import { useEffect, useMemo } from "react";
 import { useAuth } from "@/context/AuthContext";
 
@@ -8,6 +8,7 @@ const withAuth = <P extends object>(
 ) => {
   const Wrapper = (props: P) => {
     const router = useRouter();
+    const pathname = usePathname();
     const { user } = useAuth();
     const publicRoutes = useMemo(
       () => ["/", "/register", "/forgot-password"],
@@ -15,12 +16,12 @@ const withAuth = <P extends object>(
     );
 
     useEffect(() => {
-      if (!user && !publicRoutes.includes(router.pathname)) {
+      if (!user && pathname && !publicRoutes.includes(pathname)) {
         router.push("/"); // Redirige a la página de inicio (src/app/page.tsx)
       }
-    }, [user, router, publicRoutes]);
+    }, [user, pathname, router, publicRoutes]);
 
-    if (!user && !publicRoutes.includes(router.pathname)) {
+    if (!user && pathname && !publicRoutes.includes(pathname)) {
       return null; // Muestra algo mientras se redirige
     }
 
