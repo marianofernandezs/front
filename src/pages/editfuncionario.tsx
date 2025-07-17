@@ -6,6 +6,7 @@ import { DateTime } from "luxon";
 import { useRouter } from "next/router";
 import { apiRequest, APIError } from "@/utils/api";
 import { documentoSchema } from "@/validations/documentoSchema";
+import Head from "next/head";
 
 interface Documento {
   tipo: string;
@@ -406,417 +407,427 @@ function EditFuncionario() {
   };
 
   return (
-    <div className="relative min-h-screen w-full overflow-hidden bg-white">
-      {/* Fondo con opacidad */}
-      <div className="fixed inset-0 bg-white">
-        <div className="absolute inset-0">
-          <Image
-            src="/Fondoapp.jpg"
-            alt="Fondo"
-            fill
-            style={{ objectFit: "cover" }}
-            priority
-            className="opacity-50"
-          />
+    <>
+      <Head>
+        <title>Editar Funcionario</title>
+      </Head>
+      <div className="relative min-h-screen w-full overflow-hidden bg-white">
+        {/* Fondo con opacidad */}
+        <div className="fixed inset-0 bg-white">
+          <div className="absolute inset-0">
+            <Image
+              src="/Fondoapp.jpg"
+              alt="Fondo"
+              fill
+              style={{ objectFit: "cover" }}
+              priority
+              className="opacity-50"
+            />
+          </div>
         </div>
-      </div>
 
-      {/* Contenido principal */}
-      <div className="relative z-10">
-        {/* Barra de navegación */}
-        <nav className="bg-gray-300/90 shadow-lg backdrop-blur-sm">
-          <div className="w-full px-2">
-            <div className="flex justify-between items-center h-16">
-              <div className="flex items-center">
-                <Image
-                  src="/logo.png"
-                  alt="Logo SSC"
-                  width={100}
-                  height={40}
-                  className="ml-0"
-                  priority
-                  style={{ width: "auto", height: "auto" }}
-                />
-              </div>
-              <div className="flex items-center space-x-4">
-                <button
-                  onClick={irAInicio}
-                  className="text-gray-700 hover:text-gray-900 text-sm md:text-base"
-                >
-                  Inicio
-                </button>
-                <Link
-                  href="/logout"
-                  className="text-gray-700 hover:text-gray-900 text-sm md:text-base"
-                >
-                  Cerrar Sesión
-                </Link>
+        {/* Contenido principal */}
+        <div className="relative z-10">
+          {/* Barra de navegación */}
+          <nav className="bg-gray-300/90 shadow-lg backdrop-blur-sm">
+            <div className="w-full px-2">
+              <div className="flex justify-between items-center h-16">
+                <div className="flex items-center">
+                  <Image
+                    src="/logo.png"
+                    alt="Logo SSC"
+                    width={100}
+                    height={40}
+                    className="ml-0"
+                    priority
+                    style={{ width: "auto", height: "auto" }}
+                  />
+                </div>
+                <div className="flex items-center space-x-4">
+                  <button
+                    onClick={irAInicio}
+                    className="text-gray-700 hover:text-gray-900 text-sm md:text-base"
+                  >
+                    Inicio
+                  </button>
+                  <Link
+                    href="/logout"
+                    className="text-gray-700 hover:text-gray-900 text-sm md:text-base"
+                  >
+                    Cerrar Sesión
+                  </Link>
+                </div>
               </div>
             </div>
-          </div>
-        </nav>
-        {mensajeExito && (
-          <div
-            className="fixed top-8 left-1/2 transform -translate-x-1/2 bg-green-500 text-white py-2 px-6 rounded-md shadow-lg"
-            role="alert"
-          >
-            {mensajeExito}
-          </div>
-        )}
-        {mensajeError && (
-          <div className="fixed top-8 left-1/2 transform -translate-x-1/2 bg-red-500 text-white py-2 px-6 rounded-md shadow-lg">
-            {mensajeError}
-          </div>
-        )}
-        {/* Información del funcionario */}
-        <div className="max-w-3xl mx-auto mt-8 px-4">
-          <h1 className="text-2xl md:text-3xl font-bold text-center mb-6 text-gray-800">
-            Editar Funcionario
-          </h1>
-          <div className="relative mb-8">
-            <input
-              type="text"
-              value={busqueda}
-              onChange={manejarBusqueda}
-              placeholder="Buscar funcionario..."
-              className="w-full p-3 md:p-4 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-800"
-            />
+          </nav>
+          {mensajeExito && (
+            <div
+              className="fixed top-8 left-1/2 transform -translate-x-1/2 bg-green-500 text-white py-2 px-6 rounded-md shadow-lg"
+              role="alert"
+            >
+              {mensajeExito}
+            </div>
+          )}
+          {mensajeError && (
+            <div className="fixed top-8 left-1/2 transform -translate-x-1/2 bg-red-500 text-white py-2 px-6 rounded-md shadow-lg">
+              {mensajeError}
+            </div>
+          )}
+          {/* Información del funcionario */}
+          <div className="max-w-3xl mx-auto mt-8 px-4">
+            <h1 className="text-2xl md:text-3xl font-bold text-center mb-6 text-gray-800">
+              Editar Funcionario
+            </h1>
+            <div className="relative mb-8">
+              <input
+                type="text"
+                value={busqueda}
+                onChange={manejarBusqueda}
+                placeholder="Buscar funcionario..."
+                className="w-full p-3 md:p-4 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-800"
+              />
 
-            {resultados.length > 0 && (
-              <div className="absolute w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg z-50">
-                {resultados.map((f) => (
-                  <div
-                    key={f.rut}
-                    className="p-3 hover:bg-gray-100 cursor-pointer border-b border-gray-200"
-                    onClick={() => seleccionarFuncionario(f)}
-                  >
-                    <p className="text-gray-800">{f.nombre_completo}</p>
-                    <p className="text-sm text-gray-600">{f.rut}</p>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Renderizado del detalle y edición del funcionario */}
-          {funcionario && (
-            <div className="bg-white/80 backdrop-blur-sm p-6 rounded-lg shadow-md mb-8">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="font-semibold text-gray-800">
-                    Nombre Completo:
-                  </label>
-                  {isEditing ? (
-                    <input
-                      type="text"
-                      value={funcionario.nombre_completo}
-                      onChange={(e) =>
-                        setFuncionario({
-                          ...funcionario,
-                          nombre_completo: e.target.value,
-                        })
-                      }
-                      className="border border-gray-300 rounded p-2 w-full"
-                    />
-                  ) : (
-                    <p className="text-gray-700">
-                      {funcionario.nombre_completo}
-                    </p>
-                  )}
-                </div>
-                <div>
-                  <label className="font-semibold text-gray-800">RUT:</label>
-                  {isEditing ? (
-                    <input
-                      type="text"
-                      value={funcionario.rut}
-                      onChange={(e) =>
-                        setFuncionario({
-                          ...funcionario,
-                          rut: e.target.value,
-                        })
-                      }
-                      className="border border-gray-300 rounded p-2 w-full"
-                    />
-                  ) : (
-                    <p className="text-gray-700">{funcionario.rut}</p>
-                  )}
-                </div>
-                <div>
-                  <label className="font-semibold text-gray-800">
-                    Fecha de Nacimiento:
-                  </label>
-                  {isEditing ? (
-                    <input
-                      type="date"
-                      value={DateTime.fromISO(funcionario.fecha_nacimiento, {
-                        zone: "America/Santiago",
-                      }).toFormat("yyyy-MM-dd")}
-                      onChange={(e) =>
-                        setFuncionario({
-                          ...funcionario,
-                          fecha_nacimiento: e.target.value,
-                        })
-                      }
-                      className="border border-gray-300 rounded p-2 w-full"
-                    />
-                  ) : (
-                    <p className="text-gray-700">
-                      {DateTime.fromISO(funcionario.fecha_nacimiento, {
-                        zone: "America/Santiago",
-                      }).toFormat("dd/MM/yyyy")}
-                    </p>
-                  )}
-                </div>
-                <div>
-                  <label className="font-semibold text-gray-800">Edad:</label>
-                  <p className="text-gray-700">{funcionario.edad}</p>
-                </div>
-              </div>
-
-              {/* Documentos del funcionario */}
-              {funcionario.documentos && (
-                <div className="mt-4">
-                  <h3 className="font-semibold mb-2 text-gray-800">
-                    Documentos:
-                  </h3>
-                  <div className="grid grid-cols-1 gap-2">
-                    {funcionario.documentos.map((doc, index) => (
-                      <div
-                        key={index}
-                        className="bg-gray-50 p-4 rounded-lg shadow"
-                      >
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <p className="font-medium text-gray-700">
-                              {doc.tipo.replace(/_/g, " ").toUpperCase()}
-                            </p>
-                            {doc.fecha_vencimiento && (
-                              <p className="text-sm text-gray-600">
-                                Vence: {formatDate(doc.fecha_vencimiento)}
-                              </p>
-                            )}
-                          </div>
-                          <div className="flex space-x-2">
-                            <button
-                              onClick={() => handleEditDocumentoClick(doc)}
-                              className="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600 transition-colors text-sm"
-                            >
-                              Editar
-                            </button>
-                            <button
-                              onClick={() => {
-                                setDocumentoAEliminar(doc);
-                                setShowDeleteDocumentoModal(true);
-                              }}
-                              className="bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600 transition-colors text-sm"
-                            >
-                              Eliminar
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+              {resultados.length > 0 && (
+                <div className="absolute w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg z-50">
+                  {resultados.map((f) => (
+                    <div
+                      key={f.rut}
+                      className="p-3 hover:bg-gray-100 cursor-pointer border-b border-gray-200"
+                      onClick={() => seleccionarFuncionario(f)}
+                    >
+                      <p className="text-gray-800">{f.nombre_completo}</p>
+                      <p className="text-sm text-gray-600">{f.rut}</p>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
-          )}
 
-          {/* Botones de acción */}
-          <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2">
-            {isEditing ? (
-              <>
-                <button
-                  onClick={handleSave}
-                  className="bg-green-500 text-white p-4 rounded-lg hover:bg-green-600 transition-colors"
-                >
-                  Guardar
-                </button>
-                <button
-                  onClick={handleCancelEdit}
-                  className="bg-red-500 text-white p-4 rounded-lg hover:bg-red-600 transition-colors"
-                >
-                  Cancelar
-                </button>
-              </>
-            ) : (
-              <button
-                onClick={handleEdit}
-                className="bg-yellow-500 text-white p-4 rounded-lg hover:bg-yellow-600 transition-colors"
-              >
-                Editar
-              </button>
+            {/* Renderizado del detalle y edición del funcionario */}
+            {funcionario && (
+              <div className="bg-white/80 backdrop-blur-sm p-6 rounded-lg shadow-md mb-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="font-semibold text-gray-800">
+                      Nombre Completo:
+                    </label>
+                    {isEditing ? (
+                      <input
+                        type="text"
+                        value={funcionario.nombre_completo}
+                        onChange={(e) =>
+                          setFuncionario({
+                            ...funcionario,
+                            nombre_completo: e.target.value,
+                          })
+                        }
+                        className="border border-gray-300 rounded p-2 w-full"
+                      />
+                    ) : (
+                      <p className="text-gray-700">
+                        {funcionario.nombre_completo}
+                      </p>
+                    )}
+                  </div>
+                  <div>
+                    <label className="font-semibold text-gray-800">RUT:</label>
+                    {isEditing ? (
+                      <input
+                        type="text"
+                        value={funcionario.rut}
+                        onChange={(e) =>
+                          setFuncionario({
+                            ...funcionario,
+                            rut: e.target.value,
+                          })
+                        }
+                        className="border border-gray-300 rounded p-2 w-full"
+                      />
+                    ) : (
+                      <p className="text-gray-700">{funcionario.rut}</p>
+                    )}
+                  </div>
+                  <div>
+                    <label className="font-semibold text-gray-800">
+                      Fecha de Nacimiento:
+                    </label>
+                    {isEditing ? (
+                      <input
+                        type="date"
+                        value={DateTime.fromISO(funcionario.fecha_nacimiento, {
+                          zone: "America/Santiago",
+                        }).toFormat("yyyy-MM-dd")}
+                        onChange={(e) =>
+                          setFuncionario({
+                            ...funcionario,
+                            fecha_nacimiento: e.target.value,
+                          })
+                        }
+                        className="border border-gray-300 rounded p-2 w-full"
+                      />
+                    ) : (
+                      <p className="text-gray-700">
+                        {DateTime.fromISO(funcionario.fecha_nacimiento, {
+                          zone: "America/Santiago",
+                        }).toFormat("dd/MM/yyyy")}
+                      </p>
+                    )}
+                  </div>
+                  <div>
+                    <label className="font-semibold text-gray-800">Edad:</label>
+                    <p className="text-gray-700">{funcionario.edad}</p>
+                  </div>
+                </div>
+
+                {/* Documentos del funcionario */}
+                {funcionario.documentos && (
+                  <div className="mt-4">
+                    <h3 className="font-semibold mb-2 text-gray-800">
+                      Documentos:
+                    </h3>
+                    <div className="grid grid-cols-1 gap-2">
+                      {funcionario.documentos.map((doc, index) => (
+                        <div
+                          key={index}
+                          className="bg-gray-50 p-4 rounded-lg shadow"
+                        >
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <p className="font-medium text-gray-700">
+                                {doc.tipo.replace(/_/g, " ").toUpperCase()}
+                              </p>
+                              {doc.fecha_vencimiento && (
+                                <p className="text-sm text-gray-600">
+                                  Vence: {formatDate(doc.fecha_vencimiento)}
+                                </p>
+                              )}
+                            </div>
+                            <div className="flex space-x-2">
+                              <button
+                                onClick={() => handleEditDocumentoClick(doc)}
+                                className="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600 transition-colors text-sm"
+                              >
+                                Editar
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setDocumentoAEliminar(doc);
+                                  setShowDeleteDocumentoModal(true);
+                                }}
+                                className="bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600 transition-colors text-sm"
+                              >
+                                Eliminar
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
             )}
-            <button
-              onClick={() => setShowModal(true)}
-              className="bg-blue-500 text-white p-4 rounded-lg hover:bg-blue-600 transition-colors"
-            >
-              Agregar Documento
-            </button>
-            <button
-              onClick={() => setShowDeleteModal(true)}
-              className="bg-red-500 text-white p-4 rounded-lg hover:bg-red-600 transition-colors"
-            >
-              Eliminar Funcionario
-            </button>
-          </div>
 
-          {showDeleteModal && (
-            <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
-              <div className="bg-white p-6 rounded-lg shadow-lg">
-                <h2 className="text-lg font-bold mb-4 text-gray-800">
-                  Confirmar Eliminación
-                </h2>
-                <p>
-                  ¿Estás seguro de que deseas eliminar a{" "}
-                  {funcionario?.nombre_completo}?
-                </p>
-                <div className="mt-4">
+            {/* Botones de acción */}
+            <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2">
+              {isEditing ? (
+                <>
                   <button
-                    onClick={handleDelete}
-                    className="bg-red-500 text-white p-2 rounded-lg"
+                    onClick={handleSave}
+                    className="bg-green-500 text-white p-4 rounded-lg hover:bg-green-600 transition-colors"
                   >
-                    Eliminar
+                    Guardar
                   </button>
                   <button
-                    onClick={() => setShowDeleteModal(false)}
-                    className="bg-gray-300 text-black p-2 rounded-lg"
+                    onClick={handleCancelEdit}
+                    className="bg-red-500 text-white p-4 rounded-lg hover:bg-red-600 transition-colors"
                   >
                     Cancelar
                   </button>
+                </>
+              ) : (
+                <button
+                  onClick={handleEdit}
+                  className="bg-yellow-500 text-white p-4 rounded-lg hover:bg-yellow-600 transition-colors"
+                >
+                  Editar
+                </button>
+              )}
+              <button
+                onClick={() => setShowModal(true)}
+                className="bg-blue-500 text-white p-4 rounded-lg hover:bg-blue-600 transition-colors"
+              >
+                Agregar Documento
+              </button>
+              <button
+                onClick={() => setShowDeleteModal(true)}
+                className="bg-red-500 text-white p-4 rounded-lg hover:bg-red-600 transition-colors"
+              >
+                Eliminar Funcionario
+              </button>
+            </div>
+
+            {showDeleteModal && (
+              <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
+                <div className="bg-white p-6 rounded-lg shadow-lg">
+                  <h2 className="text-lg font-bold mb-4 text-gray-800">
+                    Confirmar Eliminación
+                  </h2>
+                  <p>
+                    ¿Estás seguro de que deseas eliminar a{" "}
+                    {funcionario?.nombre_completo}?
+                  </p>
+                  <div className="mt-4">
+                    <button
+                      onClick={handleDelete}
+                      className="bg-red-500 text-white p-2 rounded-lg"
+                    >
+                      Eliminar
+                    </button>
+                    <button
+                      onClick={() => setShowDeleteModal(false)}
+                      className="bg-gray-300 text-black p-2 rounded-lg"
+                    >
+                      Cancelar
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {showModal && (
-            <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
-              <div className="bg-white p-6 rounded-lg shadow-lg">
-                <h2 className="text-lg font-bold mb-4 text-gray-800">
-                  {isEditingDocumento ? "Editar Documento" : "Subir Documento"}
-                </h2>
-                <label className="font-semibold text-gray-800">Tipo:</label>
-                <select
-                  value={tipoDocumento}
-                  onChange={(e) => setTipoDocumento(e.target.value)}
-                  className="text-gray-800 border border-gray-300 rounded p-1 w-full"
-                >
-                  <option value="">Seleccionar tipo de documento</option>
-                  <option value="fotocopia_cedula">
-                    Fotocopia Cédula de Identidad
-                  </option>
-                  <option value="examen_pre_ocupacional">
-                    Examen Pre Ocupacional
-                  </option>
-                  <option value="contrato_trabajo">Contrato de Trabajo</option>
-                  <option value="reglamento_interno">
-                    Entrega Reglamento Interno
-                  </option>
-                  <option value="charla_odi">Charla ODI</option>
-                  <option value="anexo_contrato">
-                    Anexo de Contrato de Trabajo
-                  </option>
-                  <option value="entrega_epp">Entrega EPP</option>
-                  <option value="hoja_vida_conductor">
-                    Hoja de Vida del Conductor
-                  </option>
-                  <option value="examen_psicometrico">
-                    Examen Psicométrico
-                  </option>
-                  <option value="licencia_conducir">
-                    Fotocopia Licencia de Conducir
-                  </option>
-                </select>
-                <input
-                  type="file"
-                  accept=".pdf"
-                  onChange={handleFileChange}
-                  className="text-gray-800 p-1 mt-2"
-                />
-                <label className="font-semibold text-gray-800 mt-2">
-                  Fecha de Vencimiento:
-                </label>
-                <input
-                  type="date"
-                  value={fechaVencimiento}
-                  onChange={(e) => setFechaVencimiento(e.target.value)}
-                  className="text-gray-800 border border-gray-300 rounded p-1 mt-1 w-full"
-                />
-                {isEditing && documentoAEditar && (
-                  <p className="text-gray-600 mt-2">
-                    Archivo Actual: {documentoAEditar.archivo}
-                  </p>
-                )}
-                <div className="flex gap-2 mt-2">
-                  {isEditingDocumento ? (
-                    <button
-                      onClick={handleSubmit}
-                      className="bg-blue-500 text-white px-4 py-2 rounded"
-                    >
-                      Actualizar
-                    </button>
-                  ) : (
-                    <>
+            {showModal && (
+              <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
+                <div className="bg-white p-6 rounded-lg shadow-lg">
+                  <h2 className="text-lg font-bold mb-4 text-gray-800">
+                    {isEditingDocumento
+                      ? "Editar Documento"
+                      : "Subir Documento"}
+                  </h2>
+                  <label className="font-semibold text-gray-800">Tipo:</label>
+                  <select
+                    value={tipoDocumento}
+                    onChange={(e) => setTipoDocumento(e.target.value)}
+                    className="text-gray-800 border border-gray-300 rounded p-1 w-full"
+                  >
+                    <option value="">Seleccionar tipo de documento</option>
+                    <option value="fotocopia_cedula">
+                      Fotocopia Cédula de Identidad
+                    </option>
+                    <option value="examen_pre_ocupacional">
+                      Examen Pre Ocupacional
+                    </option>
+                    <option value="contrato_trabajo">
+                      Contrato de Trabajo
+                    </option>
+                    <option value="reglamento_interno">
+                      Entrega Reglamento Interno
+                    </option>
+                    <option value="charla_odi">Charla ODI</option>
+                    <option value="anexo_contrato">
+                      Anexo de Contrato de Trabajo
+                    </option>
+                    <option value="entrega_epp">Entrega EPP</option>
+                    <option value="hoja_vida_conductor">
+                      Hoja de Vida del Conductor
+                    </option>
+                    <option value="examen_psicometrico">
+                      Examen Psicométrico
+                    </option>
+                    <option value="licencia_conducir">
+                      Fotocopia Licencia de Conducir
+                    </option>
+                  </select>
+                  <input
+                    type="file"
+                    accept=".pdf"
+                    onChange={handleFileChange}
+                    className="text-gray-800 p-1 mt-2"
+                  />
+                  <label className="font-semibold text-gray-800 mt-2">
+                    Fecha de Vencimiento:
+                  </label>
+                  <input
+                    type="date"
+                    value={fechaVencimiento}
+                    onChange={(e) => setFechaVencimiento(e.target.value)}
+                    className="text-gray-800 border border-gray-300 rounded p-1 mt-1 w-full"
+                  />
+                  {isEditing && documentoAEditar && (
+                    <p className="text-gray-600 mt-2">
+                      Archivo Actual: {documentoAEditar.archivo}
+                    </p>
+                  )}
+                  <div className="flex gap-2 mt-2">
+                    {isEditingDocumento ? (
                       <button
                         onClick={handleSubmit}
                         className="bg-blue-500 text-white px-4 py-2 rounded"
                       >
-                        Agregar
+                        Actualizar
                       </button>
+                    ) : (
+                      <>
+                        <button
+                          onClick={handleSubmit}
+                          className="bg-blue-500 text-white px-4 py-2 rounded"
+                        >
+                          Agregar
+                        </button>
+                        <button
+                          onClick={() => setShowModal(false)}
+                          className="bg-red-500 text-white px-4 py-2 rounded"
+                        >
+                          Cancelar
+                        </button>
+                      </>
+                    )}
+                    {isEditingDocumento && (
                       <button
                         onClick={() => setShowModal(false)}
                         className="bg-red-500 text-white px-4 py-2 rounded"
                       >
                         Cancelar
                       </button>
-                    </>
-                  )}
-                  {isEditingDocumento && (
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+            {showDeleteDocumentoModal && (
+              <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
+                <div className="bg-white p-6 rounded-lg shadow-lg max-w-sm w-full">
+                  <h2 className="text-lg font-bold mb-4 text-gray-800">
+                    Confirmar Eliminación de Documento
+                  </h2>
+                  <p>
+                    ¿Estás seguro de que deseas eliminar el documento{" "}
+                    {documentoAEliminar?.tipo}?
+                  </p>
+                  <div className="mt-4 flex gap-2">
                     <button
-                      onClick={() => setShowModal(false)}
-                      className="bg-red-500 text-white px-4 py-2 rounded"
+                      onClick={handleDeleteDocumento}
+                      className="bg-red-500 text-white p-2 rounded-lg"
+                    >
+                      Eliminar
+                    </button>
+                    <button
+                      onClick={() => {
+                        setShowDeleteDocumentoModal(false);
+                        setDocumentoAEliminar(null);
+                      }}
+                      className="bg-gray-300 text-black p-2 rounded-lg"
                     >
                       Cancelar
                     </button>
-                  )}
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
-          {showDeleteDocumentoModal && (
-            <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
-              <div className="bg-white p-6 rounded-lg shadow-lg max-w-sm w-full">
-                <h2 className="text-lg font-bold mb-4 text-gray-800">
-                  Confirmar Eliminación de Documento
-                </h2>
-                <p>
-                  ¿Estás seguro de que deseas eliminar el documento{" "}
-                  {documentoAEliminar?.tipo}?
-                </p>
-                <div className="mt-4 flex gap-2">
-                  <button
-                    onClick={handleDeleteDocumento}
-                    className="bg-red-500 text-white p-2 rounded-lg"
-                  >
-                    Eliminar
-                  </button>
-                  <button
-                    onClick={() => {
-                      setShowDeleteDocumentoModal(false);
-                      setDocumentoAEliminar(null);
-                    }}
-                    className="bg-gray-300 text-black p-2 rounded-lg"
-                  >
-                    Cancelar
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </div>
-    </div>
+      );
+    </>
   );
 }
 
