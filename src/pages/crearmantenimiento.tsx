@@ -6,6 +6,7 @@ import withAuth from "@/hoc/withAuth";
 import { useRouter } from "next/router";
 import { apiRequest, APIError } from "@/utils/api";
 import { useAuth } from "@/context/AuthContext";
+import Head from "next/head";
 
 interface Vehicle {
   id: number;
@@ -192,293 +193,301 @@ function CrearMantenimiento() {
   }, [router]);
 
   return (
-    <div className="relative min-h-screen w-full overflow-hidden bg-white">
-      {/* Background Image */}
-      <div
-        className="fixed inset-0 z-0 opacity-10"
-        style={{
-          backgroundImage: 'url("/Fondoapp.jpg")',
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-          backgroundRepeat: "no-repeat",
-        }}
-      />
-
-      {/* Navigation Bar */}
-      <nav className="bg-gray-300/90 shadow-lg backdrop-blur-sm relative z-10">
-        <div className="w-full px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center">
-              <Image
-                src="/logo.png"
-                alt="Logo"
-                width={100}
-                height={40}
-                style={{ width: "auto", height: "auto" }}
-                priority
-              />
-            </div>
-            <div className="flex items-center space-x-4">
-              <button
-                onClick={irAInicio}
-                className="text-gray-700 hover:text-gray-900"
-              >
-                Inicio
-              </button>
-              <Link
-                href="/logout"
-                className="text-gray-700 hover:text-gray-900"
-              >
-                Cerrar Sesión
-              </Link>
-            </div>
-          </div>
-        </div>
-      </nav>
-
-      {mensaje && (
+    <>
+      <Head>
+        <title>Crear Mantenimiento</title>
+      </Head>
+      <div className="relative min-h-screen w-full overflow-hidden bg-white">
+        {/* Background Image */}
         <div
-          className="fixed top-20 left-1/2 transform -translate-x-1/2 bg-green-500 text-white py-2 px-6 rounded-md shadow-lg z-50"
-          role="alert"
-        >
-          {mensaje}
-        </div>
-      )}
-      {mensajeError && (
-        <div
-          className="fixed top-20 left-1/2 transform -translate-x-1/2 bg-red-500 text-white py-2 px-6 rounded-md shadow-lg z-50"
-          role="alert"
-        >
-          {mensajeError}
-        </div>
-      )}
+          className="fixed inset-0 z-0 opacity-10"
+          style={{
+            backgroundImage: 'url("/Fondoapp.jpg")',
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+            backgroundRepeat: "no-repeat",
+          }}
+        />
 
-      {/* Main Content */}
-      <div className="relative z-10 p-4 sm:p-6 lg:p-8">
-        <div className="max-w-3xl mx-auto">
-          <button
-            className="p-2 text-green-600 hover:text-green-700"
-            onClick={() => setShowForm(true)}
-            aria-label="Agregar mantenimiento"
-          >
-            <Plus size={20} />
-          </button>
-
-          {showForm && (
-            <form
-              onSubmit={handleSave}
-              className="bg-white rounded-lg shadow-md p-6"
-            >
-              <div className="mb-6">
-                <label className="block text-gray-700 mb-2">Vehículo:</label>
-                <select
-                  className="w-full border rounded-md p-2 text-gray-700"
-                  value={selectedVehicleMatricula}
-                  onChange={(e) => setSelectedVehicleMatricula(e.target.value)}
-                >
-                  <option value="">Seleccione un vehículo</option>
-                  {vehicles.map((vehicle) => (
-                    <option key={vehicle.matricula} value={vehicle.matricula}>
-                      {vehicle.matricula} - {vehicle.modelo}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-gray-700 mb-2">
-                    Número mantenimiento:
-                  </label>
-                  <input
-                    type="text"
-                    name="numero_mantenimiento"
-                    value={maintenanceData.numero_mantenimiento}
-                    onChange={handleInputChange}
-                    className="w-full border rounded-md p-2 text-gray-700"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-gray-700 mb-2">Fecha:</label>
-                  <input
-                    type="date"
-                    name="fecha"
-                    value={maintenanceData.fecha}
-                    onChange={handleInputChange}
-                    className="w-full border rounded-md p-2 text-gray-700"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
-                <div>
-                  <label className="block text-gray-700 mb-2">
-                    Tipo de aceite:
-                  </label>
-                  <input
-                    type="text"
-                    name="tipo_de_aceite"
-                    value={maintenanceData.tipo_de_aceite}
-                    onChange={handleInputChange}
-                    className="w-full border rounded-md p-2 text-gray-700"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-gray-700 mb-2">
-                    Litros de aceite:
-                  </label>
-                  <input
-                    type="text"
-                    name="litros_de_aceite"
-                    value={maintenanceData.litros_de_aceite}
-                    onChange={handleInputChange}
-                    className="w-full border rounded-md p-2 text-gray-700"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
-                <div>
-                  <label className="block text-gray-700 mb-2">
-                    Refrigerante:
-                  </label>
-                  <input
-                    type="text"
-                    name="refrigerante"
-                    value={maintenanceData.refrigerante}
-                    onChange={handleInputChange}
-                    className="w-full border rounded-md p-2 text-gray-700"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-gray-700 mb-2">
-                    Litros de refrigerante:
-                  </label>
-                  <input
-                    type="text"
-                    name="litros_de_refrigerante"
-                    value={maintenanceData.litros_de_refrigerante}
-                    onChange={handleInputChange}
-                    className="w-full border rounded-md p-2 text-gray-700"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
-                <div className="space-y-3">
-                  <label className="flex items-center text-gray-700">
-                    <input
-                      type="checkbox"
-                      name="filtro_de_aceite"
-                      checked={maintenanceData.filtro_de_aceite}
-                      onChange={handleInputChange}
-                      className="mr-2"
-                    />
-                    Filtro de aceite
-                  </label>
-                  <label className="flex items-center text-gray-700">
-                    <input
-                      type="checkbox"
-                      name="filtro_de_polen"
-                      checked={maintenanceData.filtro_de_polen}
-                      onChange={handleInputChange}
-                      className="mr-2"
-                    />
-                    Filtro de polen
-                  </label>
-                  <label className="flex items-center text-gray-700">
-                    <input
-                      type="checkbox"
-                      name="filtro_de_aire"
-                      checked={maintenanceData.filtro_de_aire}
-                      onChange={handleInputChange}
-                      className="mr-2"
-                    />
-                    Filtro de aire
-                  </label>
-                  <label className="flex items-center text-gray-700">
-                    <input
-                      type="checkbox"
-                      name="filtro_de_petroleo"
-                      checked={maintenanceData.filtro_de_petroleo}
-                      onChange={handleInputChange}
-                      className="mr-2"
-                    />
-                    Filtro de petroleo
-                  </label>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
-                <div>
-                  <label className="block text-gray-700 mb-2">
-                    Kilometraje:
-                  </label>
-                  <input
-                    type="text"
-                    name="kilometraje"
-                    value={maintenanceData.kilometraje}
-                    onChange={handleInputChange}
-                    className="w-full border rounded-md p-2 text-gray-700"
-                  />
-                </div>
-                <div>
-                  <label className="block text-gray-700 mb-2">
-                    Próxima mantención kilometraje:
-                  </label>
-                  <select
-                    name="proxima_mantencion_kilometraje"
-                    value={maintenanceData.proxima_mantencion_kilometraje}
-                    onChange={handleInputChange}
-                    className="w-full border rounded-md p-2 text-gray-700"
-                  >
-                    <option value="">Seleccione</option>
-                    <option value="10000">10.000 Km</option>
-                    <option value="13000">13.000 Km</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="mt-4">
-                <label className="block text-gray-700 mb-2">
-                  Observaciones:
-                </label>
-                <textarea
-                  name="observaciones"
-                  value={maintenanceData.observaciones}
-                  onChange={handleInputChange}
-                  className="w-full border rounded-md p-2 h-32 text-gray-700"
+        {/* Navigation Bar */}
+        <nav className="bg-gray-300/90 shadow-lg backdrop-blur-sm relative z-10">
+          <div className="w-full px-4 sm:px-6 lg:px-8">
+            <div className="flex justify-between items-center h-16">
+              <div className="flex items-center">
+                <Image
+                  src="/logo.png"
+                  alt="Logo"
+                  width={100}
+                  height={40}
+                  style={{ width: "auto", height: "auto" }}
+                  priority
                 />
               </div>
-
-              <div className="flex justify-end gap-4 mt-4">
+              <div className="flex items-center space-x-4">
                 <button
-                  type="submit"
-                  disabled={loading}
-                  className={`px-4 py-2 rounded-md text-white ${
-                    loading
-                      ? "bg-gray-400 cursor-not-allowed"
-                      : "bg-blue-600 hover:bg-blue-700"
-                  }`}
+                  onClick={irAInicio}
+                  className="text-gray-700 hover:text-gray-900"
                 >
-                  {loading ? "Guardando..." : "Guardar"}
+                  Inicio
                 </button>
-                <button
-                  type="button"
-                  onClick={handleCancel}
-                  className="px-4 py-2 rounded-md bg-red-500 text-white hover:bg-red-400"
+                <Link
+                  href="/logout"
+                  className="text-gray-700 hover:text-gray-900"
                 >
-                  Cancelar
-                </button>
+                  Cerrar Sesión
+                </Link>
               </div>
-            </form>
-          )}
+            </div>
+          </div>
+        </nav>
+
+        {mensaje && (
+          <div
+            className="fixed top-20 left-1/2 transform -translate-x-1/2 bg-green-500 text-white py-2 px-6 rounded-md shadow-lg z-50"
+            role="alert"
+          >
+            {mensaje}
+          </div>
+        )}
+        {mensajeError && (
+          <div
+            className="fixed top-20 left-1/2 transform -translate-x-1/2 bg-red-500 text-white py-2 px-6 rounded-md shadow-lg z-50"
+            role="alert"
+          >
+            {mensajeError}
+          </div>
+        )}
+
+        {/* Main Content */}
+        <div className="relative z-10 p-4 sm:p-6 lg:p-8">
+          <div className="max-w-3xl mx-auto">
+            <button
+              className="p-2 text-green-600 hover:text-green-700"
+              onClick={() => setShowForm(true)}
+              aria-label="Agregar mantenimiento"
+            >
+              <Plus size={20} />
+            </button>
+
+            {showForm && (
+              <form
+                onSubmit={handleSave}
+                className="bg-white rounded-lg shadow-md p-6"
+              >
+                <div className="mb-6">
+                  <label className="block text-gray-700 mb-2">Vehículo:</label>
+                  <select
+                    className="w-full border rounded-md p-2 text-gray-700"
+                    value={selectedVehicleMatricula}
+                    onChange={(e) =>
+                      setSelectedVehicleMatricula(e.target.value)
+                    }
+                  >
+                    <option value="">Seleccione un vehículo</option>
+                    {vehicles.map((vehicle) => (
+                      <option key={vehicle.matricula} value={vehicle.matricula}>
+                        {vehicle.matricula} - {vehicle.modelo}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-gray-700 mb-2">
+                      Número mantenimiento:
+                    </label>
+                    <input
+                      type="text"
+                      name="numero_mantenimiento"
+                      value={maintenanceData.numero_mantenimiento}
+                      onChange={handleInputChange}
+                      className="w-full border rounded-md p-2 text-gray-700"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-gray-700 mb-2">Fecha:</label>
+                    <input
+                      type="date"
+                      name="fecha"
+                      value={maintenanceData.fecha}
+                      onChange={handleInputChange}
+                      className="w-full border rounded-md p-2 text-gray-700"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+                  <div>
+                    <label className="block text-gray-700 mb-2">
+                      Tipo de aceite:
+                    </label>
+                    <input
+                      type="text"
+                      name="tipo_de_aceite"
+                      value={maintenanceData.tipo_de_aceite}
+                      onChange={handleInputChange}
+                      className="w-full border rounded-md p-2 text-gray-700"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-gray-700 mb-2">
+                      Litros de aceite:
+                    </label>
+                    <input
+                      type="text"
+                      name="litros_de_aceite"
+                      value={maintenanceData.litros_de_aceite}
+                      onChange={handleInputChange}
+                      className="w-full border rounded-md p-2 text-gray-700"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+                  <div>
+                    <label className="block text-gray-700 mb-2">
+                      Refrigerante:
+                    </label>
+                    <input
+                      type="text"
+                      name="refrigerante"
+                      value={maintenanceData.refrigerante}
+                      onChange={handleInputChange}
+                      className="w-full border rounded-md p-2 text-gray-700"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-gray-700 mb-2">
+                      Litros de refrigerante:
+                    </label>
+                    <input
+                      type="text"
+                      name="litros_de_refrigerante"
+                      value={maintenanceData.litros_de_refrigerante}
+                      onChange={handleInputChange}
+                      className="w-full border rounded-md p-2 text-gray-700"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+                  <div className="space-y-3">
+                    <label className="flex items-center text-gray-700">
+                      <input
+                        type="checkbox"
+                        name="filtro_de_aceite"
+                        checked={maintenanceData.filtro_de_aceite}
+                        onChange={handleInputChange}
+                        className="mr-2"
+                      />
+                      Filtro de aceite
+                    </label>
+                    <label className="flex items-center text-gray-700">
+                      <input
+                        type="checkbox"
+                        name="filtro_de_polen"
+                        checked={maintenanceData.filtro_de_polen}
+                        onChange={handleInputChange}
+                        className="mr-2"
+                      />
+                      Filtro de polen
+                    </label>
+                    <label className="flex items-center text-gray-700">
+                      <input
+                        type="checkbox"
+                        name="filtro_de_aire"
+                        checked={maintenanceData.filtro_de_aire}
+                        onChange={handleInputChange}
+                        className="mr-2"
+                      />
+                      Filtro de aire
+                    </label>
+                    <label className="flex items-center text-gray-700">
+                      <input
+                        type="checkbox"
+                        name="filtro_de_petroleo"
+                        checked={maintenanceData.filtro_de_petroleo}
+                        onChange={handleInputChange}
+                        className="mr-2"
+                      />
+                      Filtro de petroleo
+                    </label>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+                  <div>
+                    <label className="block text-gray-700 mb-2">
+                      Kilometraje:
+                    </label>
+                    <input
+                      type="text"
+                      name="kilometraje"
+                      value={maintenanceData.kilometraje}
+                      onChange={handleInputChange}
+                      className="w-full border rounded-md p-2 text-gray-700"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-gray-700 mb-2">
+                      Próxima mantención kilometraje:
+                    </label>
+                    <select
+                      name="proxima_mantencion_kilometraje"
+                      value={maintenanceData.proxima_mantencion_kilometraje}
+                      onChange={handleInputChange}
+                      className="w-full border rounded-md p-2 text-gray-700"
+                    >
+                      <option value="">Seleccione</option>
+                      <option value="10000">10.000 Km</option>
+                      <option value="13000">13.000 Km</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="mt-4">
+                  <label className="block text-gray-700 mb-2">
+                    Observaciones:
+                  </label>
+                  <textarea
+                    name="observaciones"
+                    value={maintenanceData.observaciones}
+                    onChange={handleInputChange}
+                    className="w-full border rounded-md p-2 h-32 text-gray-700"
+                  />
+                </div>
+
+                <div className="flex justify-end gap-4 mt-4">
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className={`px-4 py-2 rounded-md text-white ${
+                      loading
+                        ? "bg-gray-400 cursor-not-allowed"
+                        : "bg-blue-600 hover:bg-blue-700"
+                    }`}
+                  >
+                    {loading ? "Guardando..." : "Guardar"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleCancel}
+                    className="px-4 py-2 rounded-md bg-red-500 text-white hover:bg-red-400"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
         </div>
       </div>
-    </div>
+      );
+    </>
   );
 }
 
