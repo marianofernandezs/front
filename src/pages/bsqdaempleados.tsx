@@ -135,7 +135,7 @@ function BusquedaEmpleados() {
   return (
     <>
       <Head>
-        <title>Búsqueda Personal</title>
+        <title>Búsqueda De Personal</title>
       </Head>
       <div className="relative min-h-screen w-full overflow-auto bg-white">
         {/* Fondo con opacidad */}
