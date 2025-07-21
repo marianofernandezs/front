@@ -381,8 +381,13 @@ function EditFuncionario() {
                       className="p-3 hover:bg-gray-100 cursor-pointer border-b border-gray-200"
                       onClick={() => seleccionarVehiculo(vehiculo)}
                     >
-                      <p className="text-gray-800">{vehiculo.matricula}</p>
-                      <p className="text-sm text-gray-600">{vehiculo.marca}</p>
+                      <p className="text-gray-800">
+                        Matricula: {vehiculo.matricula}
+                      </p>
+                      <p className="text-sm text-gray-600">
+                        {vehiculo.marca} - {vehiculo.modelo} -
+                        {vehiculo.numero_de_maquina}
+                      </p>
                     </div>
                   ))}
                 </div>
