@@ -385,8 +385,10 @@ function EditFuncionario() {
                         Matricula: {vehiculo.matricula}
                       </p>
                       <p className="text-sm text-gray-600">
-                        {vehiculo.marca} - {vehiculo.modelo} -
-                        {vehiculo.numero_de_maquina}
+                        Número de máquina: {vehiculo.numero_de_maquina}
+                      </p>
+                      <p className="text-sm text-gray-600">
+                        Modelo: {vehiculo.modelo}
                       </p>
                     </div>
                   ))}
