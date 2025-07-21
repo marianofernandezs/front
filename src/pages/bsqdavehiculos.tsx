@@ -18,6 +18,7 @@ interface Vehiculo {
   matricula: string;
   marca: string;
   modelo: string;
+  numero_de_maquina: number;
   documentos?: Documento[];
 }
 
@@ -210,10 +211,13 @@ function BusquedaVehiculos() {
                       onClick={() => seleccionarVehiculo(vehiculo)}
                     >
                       <p className="text-gray-800">
-                        {vehiculo.marca} {vehiculo.modelo}
+                        Matrícula: {vehiculo.matricula}
                       </p>
                       <p className="text-sm text-gray-600">
-                        Matrícula: {vehiculo.matricula}
+                        Número de máquina: {vehiculo.numero_de_maquina}
+                      </p>
+                      <p className="text-sm text-gray-600">
+                        Modelo: {vehiculo.modelo}
                       </p>
                     </div>
                   ))}
@@ -248,6 +252,12 @@ function BusquedaVehiculos() {
                     <p className="font-semibold text-gray-800">Matrícula:</p>
                     <p className="text-gray-700">
                       {vehiculoSeleccionado.matricula}
+                    </p>
+                    <p className="font-semibold text-gray-800">
+                      Número de máquina:
+                    </p>
+                    <p className="text-gray-700">
+                      {vehiculoSeleccionado.numero_de_maquina}
                     </p>
                   </div>
                 </div>
